@@ -122,3 +122,29 @@ impl<'a> Lexer<'a> {
         tokens
     }
 }
+
+
+
+#[cfg(test)]
+mod lex_tests {
+    use super::*;
+
+    #[test]
+    fn test_basic_variable_declaration_lexer() {
+        let source_code = "local a = 1 + 2 * 3";
+        let mut lexer = Lexer::new(source_code);
+
+        let tokens = lexer.tokenize();
+
+        assert_eq!(tokens, vec![
+            Token::Local,
+            Token::Identifier("a".to_string()),
+            Token::Equal,
+            Token::IntegerLiteral(1),
+            Token::Plus,
+            Token::IntegerLiteral(2),
+            Token::Asterisk,
+            Token::IntegerLiteral(3),
+        ]);
+    }
+}
