@@ -1,12 +1,13 @@
 use clap::Parser;
 
 mod lex;
+mod ast;
 
 #[derive(Parser, Debug)]
 #[clap(version, author = "Lukasz <luki446@gmail.com> Burchard", about)]
 /// Lua interpreter
 struct CliOptions {
-    filename: String
+    filename: String,
 }
 
 fn main() {

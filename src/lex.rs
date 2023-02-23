@@ -8,7 +8,7 @@ pub enum Token {
     Identifier(String),
 
     // Literals
-    IntegerLiteral(i32),
+    NumberLiteral(f64),
 
     // Other
     Plus,
@@ -67,11 +67,8 @@ impl<'a> Lexer<'a> {
     }
 
     fn consume_number(&mut self) -> Token {
-        let num_str = self.consume_while(|c| c.is_ascii_digit());
-        match num_str.parse::<i32>() {
-            Ok(num) => Token::IntegerLiteral(num),
-            Err(_) => panic!("Invalid integer literal: {}", num_str),
-        }
+        let num_str = self.consume_while(|c| c.is_ascii_digit() || c == '.');
+        Token::NumberLiteral(num_str.parse().unwrap())
     }
 
     pub fn tokenize(&mut self) -> Vec<Token> {
@@ -123,8 +120,6 @@ impl<'a> Lexer<'a> {
     }
 }
 
-
-
 #[cfg(test)]
 mod lex_tests {
     use super::*;
@@ -136,15 +131,18 @@ mod lex_tests {
 
         let tokens = lexer.tokenize();
 
-        assert_eq!(tokens, vec![
-            Token::Local,
-            Token::Identifier("a".to_string()),
-            Token::Equal,
-            Token::IntegerLiteral(1),
-            Token::Plus,
-            Token::IntegerLiteral(2),
-            Token::Asterisk,
-            Token::IntegerLiteral(3),
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Local,
+                Token::Identifier("a".to_string()),
+                Token::Equal,
+                Token::NumberLiteral(1.0),
+                Token::Plus,
+                Token::NumberLiteral(2.0),
+                Token::Asterisk,
+                Token::NumberLiteral(3.0),
+            ]
+        );
     }
 }
