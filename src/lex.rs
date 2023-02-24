@@ -66,12 +66,12 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn consume_number(&mut self) -> Token {
+    fn consume_number(&mut self) -> Result<Token, String> {
         let num_str = self.consume_while(|c| c.is_ascii_digit() || c == '.');
-        Token::NumberLiteral(num_str.parse().unwrap())
+        Ok(Token::NumberLiteral(num_str.parse().or(Err("Number conversion error"))?))
     }
 
-    pub fn tokenize(&mut self) -> Vec<Token> {
+    pub fn tokenize(&mut self) -> Result<Vec<Token>, String> {
         let mut tokens = Vec::new();
         self.consume_whitespace();
         while let Some(c) = self.current {
@@ -108,15 +108,15 @@ impl<'a> Lexer<'a> {
                     self.consume_whitespace();
                 }
                 _ if c.is_ascii_digit() => {
-                    tokens.push(self.consume_number());
+                    tokens.push(self.consume_number()?);
                 }
                 _ if c.is_ascii_alphabetic() => {
                     tokens.push(self.consume_identifier());
                 }
-                _ => panic!("Invalid character: {}", c),
+                _ => Err(format!("Unexpected character: {}", c))?,
             }
         }
-        tokens
+        Ok(tokens)
     }
 }
 
@@ -129,7 +129,7 @@ mod lex_tests {
         let source_code = "local a = 1 + 2 * 3";
         let mut lexer = Lexer::new(source_code);
 
-        let tokens = lexer.tokenize();
+        let tokens = lexer.tokenize().unwrap();
 
         assert_eq!(
             tokens,

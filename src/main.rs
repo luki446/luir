@@ -17,7 +17,7 @@ fn main() {
 
     let mut lexer = lex::Lexer::new(&source_code);
 
-    let tokens = lexer.tokenize();
+    let tokens = lexer.tokenize().unwrap();
 
     println!("{:#?}", tokens);
 }
