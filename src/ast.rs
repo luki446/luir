@@ -4,7 +4,7 @@ pub enum EvalValue {
 }
 
 trait Expression {
-    fn execute(&self) -> EvalValue;
+    fn execute(&self) -> Result<EvalValue, String>;
 }
 
 pub struct NumberExpression {
@@ -12,8 +12,8 @@ pub struct NumberExpression {
 }
 
 impl Expression for NumberExpression {
-    fn execute(&self) -> EvalValue {
-        EvalValue::Number(self.value)
+    fn execute(&self) -> Result<EvalValue, String> {
+        Ok(EvalValue::Number(self.value))
     }
 }
 
@@ -24,36 +24,21 @@ pub struct BinaryExpression {
 }
 
 impl Expression for BinaryExpression {
-    fn execute(&self) -> EvalValue {
-        let left = self.left.execute();
-        let right = self.right.execute();
+    fn execute(&self) -> Result<EvalValue, String> {
+        let lhs = self.left.execute()?;
+        let rhs = self.right.execute()?;
 
-        match self.operator.as_str() {
-            "+" => {
-                match (left, right) {
-                    (EvalValue::Number(left), EvalValue::Number(right)) => EvalValue::Number(left + right),
-                    _ => panic!("Invalid types for addition")
+        match (lhs, rhs) {
+            (EvalValue::Number(left), EvalValue::Number(right)) => {
+                match self.operator.as_str() {
+                    "+" => Ok(EvalValue::Number(left + right)),
+                    "-" => Ok(EvalValue::Number(left - right)),
+                    "*" => Ok(EvalValue::Number(left * right)),
+                    "/" => Ok(EvalValue::Number(left / right)),
+                    _ => Err(format!("Unknown operator: '{}'", self.operator))
                 }
-            },
-            "-" => {
-                match (left, right) {
-                    (EvalValue::Number(left), EvalValue::Number(right)) => EvalValue::Number(left - right),
-                    _ => panic!("Invalid types for subtraction")
-                }
-            },
-            "*" => {
-                match (left, right) {
-                    (EvalValue::Number(left), EvalValue::Number(right)) => EvalValue::Number(left * right),
-                    _ => panic!("Invalid types for multiplication")
-                }
-            },
-            "/" => {
-                match (left, right) {
-                    (EvalValue::Number(left), EvalValue::Number(right)) => EvalValue::Number(left / right),
-                    _ => panic!("Invalid types for division")
-                }
-            },
-            _ => panic!("Invalid operator")
+            }
+            _ => Err("Invalid operands".to_string()),
         }
     }
 }
