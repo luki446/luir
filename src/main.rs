@@ -1,7 +1,7 @@
 use clap::Parser;
 
-mod lex;
 mod ast;
+mod lex;
 
 #[derive(Parser, Debug)]
 #[clap(version, author = "Lukasz <luki446@gmail.com> Burchard", about)]

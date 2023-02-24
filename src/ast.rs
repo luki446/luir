@@ -1,6 +1,5 @@
-
 pub enum EvalValue {
-    Number(f64)
+    Number(f64),
 }
 
 trait Expression {
@@ -8,7 +7,7 @@ trait Expression {
 }
 
 pub struct NumberExpression {
-    value: f64
+    value: f64,
 }
 
 impl Expression for NumberExpression {
@@ -20,7 +19,7 @@ impl Expression for NumberExpression {
 pub struct BinaryExpression {
     left: Box<dyn Expression>,
     operator: String,
-    right: Box<dyn Expression>
+    right: Box<dyn Expression>,
 }
 
 impl Expression for BinaryExpression {
@@ -29,17 +28,14 @@ impl Expression for BinaryExpression {
         let rhs = self.right.execute()?;
 
         match (lhs, rhs) {
-            (EvalValue::Number(left), EvalValue::Number(right)) => {
-                match self.operator.as_str() {
-                    "+" => Ok(EvalValue::Number(left + right)),
-                    "-" => Ok(EvalValue::Number(left - right)),
-                    "*" => Ok(EvalValue::Number(left * right)),
-                    "/" => Ok(EvalValue::Number(left / right)),
-                    _ => Err(format!("Unknown operator: '{}'", self.operator))
-                }
-            }
+            (EvalValue::Number(left), EvalValue::Number(right)) => match self.operator.as_str() {
+                "+" => Ok(EvalValue::Number(left + right)),
+                "-" => Ok(EvalValue::Number(left - right)),
+                "*" => Ok(EvalValue::Number(left * right)),
+                "/" => Ok(EvalValue::Number(left / right)),
+                _ => Err(format!("Unknown operator: '{}'", self.operator)),
+            },
             _ => Err("Invalid operands".to_string()),
         }
     }
 }
-

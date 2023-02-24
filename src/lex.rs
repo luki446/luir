@@ -68,7 +68,9 @@ impl<'a> Lexer<'a> {
 
     fn consume_number(&mut self) -> Result<Token, String> {
         let num_str = self.consume_while(|c| c.is_ascii_digit() || c == '.');
-        Ok(Token::NumberLiteral(num_str.parse().or(Err("Number conversion error"))?))
+        Ok(Token::NumberLiteral(
+            num_str.parse().or(Err("Number conversion error"))?,
+        ))
     }
 
     pub fn tokenize(&mut self) -> Result<Vec<Token>, String> {
