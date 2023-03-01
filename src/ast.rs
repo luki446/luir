@@ -46,7 +46,7 @@ impl LocalVariableDeclaration {
 }
 
 pub struct Block {
-    statements: Vec<Box<dyn Statement>>,
+    pub statements: Vec<Box<dyn Statement>>,
 }
 
 impl Statement for Block {
@@ -81,12 +81,6 @@ impl NumberExpression {
     }
 }
 
-impl std::fmt::Debug for dyn Expression {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
 #[derive(Debug)]
 pub struct IdentifierExpression {
     name: String,
@@ -106,7 +100,6 @@ impl IdentifierExpression {
     }
 }
 
-#[derive(Debug)]
 pub struct BinaryExpression {
     left: Box<dyn Expression>,
     operator: String,
@@ -147,52 +140,52 @@ mod ast_tests {
 
     #[test]
     fn test_number_expression() {
-        let mut MAP: GlobalMap = GlobalMap::new();
+        let mut map: GlobalMap = GlobalMap::new();
         let expr = NumberExpression { value: 5.0 };
-        assert_eq!(expr.execute(&mut MAP).unwrap(), EvalValue::Number(5.0));
+        assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(5.0));
     }
 
     #[test]
     fn test_binary_addition_on_2_numbers() {
-        let mut MAP: GlobalMap = GlobalMap::new();
+        let mut map: GlobalMap = GlobalMap::new();
         let expr = BinaryExpression {
             left: Box::new(NumberExpression { value: 5.0 }),
             operator: "+".to_string(),
             right: Box::new(NumberExpression { value: 5.0 }),
         };
-        assert_eq!(expr.execute(&mut MAP).unwrap(), EvalValue::Number(10.0));
+        assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(10.0));
     }
 
     #[test]
     fn test_binary_subtraction_on_2_numbers() {
-        let mut MAP: GlobalMap = GlobalMap::new();
+        let mut map: GlobalMap = GlobalMap::new();
         let expr = BinaryExpression {
             left: Box::new(NumberExpression { value: 5.0 }),
             operator: "-".to_string(),
             right: Box::new(NumberExpression { value: 5.0 }),
         };
-        assert_eq!(expr.execute(&mut MAP).unwrap(), EvalValue::Number(0.0));
+        assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(0.0));
     }
 
     #[test]
     fn test_binary_multiplication_on_2_numbers() {
-        let mut MAP: GlobalMap = GlobalMap::new();
+        let mut map: GlobalMap = GlobalMap::new();
         let expr = BinaryExpression {
             left: Box::new(NumberExpression { value: 5.0 }),
             operator: "*".to_string(),
             right: Box::new(NumberExpression { value: 5.0 }),
         };
-        assert_eq!(expr.execute(&mut MAP).unwrap(), EvalValue::Number(25.0));
+        assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(25.0));
     }
 
     #[test]
     fn test_binary_division_on_2_numbers() {
-        let mut MAP: GlobalMap = GlobalMap::new();
+        let mut map: GlobalMap = GlobalMap::new();
         let expr = BinaryExpression {
             left: Box::new(NumberExpression { value: 5.0 }),
             operator: "/".to_string(),
             right: Box::new(NumberExpression { value: 5.0 }),
         };
-        assert_eq!(expr.execute(&mut MAP).unwrap(), EvalValue::Number(1.0));
+        assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(1.0));
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     ast,
-    lex::{self, Lexer},
+    lex::{self, Lexer, LiteralType},
 };
 
 pub struct Parser<'a> {
@@ -49,7 +49,7 @@ impl<'a> Parser<'a> {
             return Err("Expected identifier".to_string());
         }
 
-        if let Some(lex::Token::Equal) = tokens.next() {
+        if let Some(lex::Token::Assigment) = tokens.next() {
             let expression = self.parse_expression(tokens)?;
 
             local_variable_declaration.set_expression(expression);
@@ -133,7 +133,7 @@ impl<'a> Parser<'a> {
                         Err("Expected ')'".to_string())
                     }
                 }
-                lex::Token::NumberLiteral(number) => {
+                lex::Token::Literal(LiteralType::Number(number)) => {
                     Ok(Box::new(ast::NumberExpression::new(number)))
                 }
                 lex::Token::Identifier(identifier) => {

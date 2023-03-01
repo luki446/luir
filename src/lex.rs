@@ -1,6 +1,14 @@
 use std::str::Chars;
 
 #[derive(Debug, PartialEq)]
+pub enum LiteralType {
+    Number(f64),
+    Boolean(bool),
+    String(String),
+    Nil
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Token {
     // Keywords
     Local,
@@ -8,7 +16,7 @@ pub enum Token {
     Identifier(String),
 
     // Literals
-    NumberLiteral(f64),
+    Literal(LiteralType),
 
     // Other
     Plus,
@@ -17,7 +25,16 @@ pub enum Token {
     Slash,
     LeftParen,
     RightParen,
+    Assigment,
+
     Equal,
+    NotEqual,
+    LessThan,
+    LessThanOrEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
+
+    Concatanation,
 }
 
 pub struct Lexer<'a> {
@@ -62,15 +79,18 @@ impl<'a> Lexer<'a> {
         let id = self.consume_while(|c| c.is_alphanumeric() || c == '_');
         match id.as_str() {
             "local" => Token::Local,
+            "nil" => Token::Literal(LiteralType::Nil),
+            "true" => Token::Literal(LiteralType::Boolean(true)),
+            "false" => Token::Literal(LiteralType::Boolean(false)),
             _ => Token::Identifier(id),
         }
     }
 
     fn consume_number(&mut self) -> Result<Token, String> {
         let num_str = self.consume_while(|c| c.is_ascii_digit() || c == '.');
-        Ok(Token::NumberLiteral(
+        Ok(Token::Literal(LiteralType::Number(
             num_str.parse().or(Err("Number conversion error"))?,
-        ))
+        )))
     }
 
     pub fn tokenize(&mut self) -> Result<Vec<Token>, String> {
@@ -103,7 +123,7 @@ impl<'a> Lexer<'a> {
                     self.advance();
                 }
                 '=' => {
-                    tokens.push(Token::Equal);
+                    tokens.push(Token::Assigment);
                     self.advance();
                 }
                 _ if c.is_whitespace() => {
@@ -114,6 +134,12 @@ impl<'a> Lexer<'a> {
                 }
                 _ if c.is_ascii_alphabetic() => {
                     tokens.push(self.consume_identifier());
+                }
+                '"' => {
+                    self.advance();
+                    let string = self.consume_while(|c| c != '"');
+                    self.advance();
+                    tokens.push(Token::Literal(LiteralType::String(string)));
                 }
                 _ => Err(format!("Unexpected character: {}", c))?,
             }
@@ -138,12 +164,12 @@ mod lex_tests {
             vec![
                 Token::Local,
                 Token::Identifier("a".to_string()),
-                Token::Equal,
-                Token::NumberLiteral(1.0),
+                Token::Assigment,
+                Token::Literal(LiteralType::Number(1.0)),
                 Token::Plus,
-                Token::NumberLiteral(2.0),
+                Token::Literal(LiteralType::Number(2.0)),
                 Token::Asterisk,
-                Token::NumberLiteral(3.0),
+                Token::Literal(LiteralType::Number(3.0)),
             ]
         );
     }
