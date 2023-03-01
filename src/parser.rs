@@ -1,14 +1,16 @@
-use crate::{lex::{Lexer, self}, ast};
-
+use crate::{
+    ast,
+    lex::{self, Lexer},
+};
 
 pub struct Parser<'a> {
-    lexer: Lexer<'a>
+    lexer: Lexer<'a>,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(source_code: &'a str) -> Self {
         Self {
-            lexer: Lexer::new(source_code)
+            lexer: Lexer::new(source_code),
         }
     }
 
@@ -21,19 +23,22 @@ impl<'a> Parser<'a> {
         while let Some(token) = tokens.peek() {
             match token {
                 lex::Token::Local => {
-                    let local_variable_declaration = self.parse_local_variable_declaration(&mut tokens)?;
+                    let local_variable_declaration =
+                        self.parse_local_variable_declaration(&mut tokens)?;
 
                     statements.push(local_variable_declaration);
                 }
-                _ => return Err(format!("Unexpected token '{:?}'", token))
+                _ => return Err(format!("Unexpected token '{:?}'", token)),
             }
         }
-
 
         Ok(ast::Block::new(statements))
     }
 
-    fn parse_local_variable_declaration(&mut self, tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<Box<dyn ast::Statement>, String> {
+    fn parse_local_variable_declaration(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Box<dyn ast::Statement>, String> {
         let mut local_variable_declaration = ast::LocalVariableDeclaration::new();
 
         tokens.next();
@@ -55,7 +60,10 @@ impl<'a> Parser<'a> {
         Ok(Box::new(local_variable_declaration))
     }
 
-    fn parse_expression(&mut self, tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<Box<dyn ast::Expression>, String> {
+    fn parse_expression(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Box<dyn ast::Expression>, String> {
         let mut left = self.parse_term(tokens)?;
 
         while let Some(token) = tokens.peek() {
@@ -74,14 +82,17 @@ impl<'a> Parser<'a> {
 
                     left = Box::new(ast::BinaryExpression::from(left, right, "-".to_string()));
                 }
-                _ => break
+                _ => break,
             }
         }
 
         Ok(left)
     }
 
-    fn parse_term(&mut self, tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<Box<dyn ast::Expression>, String> {
+    fn parse_term(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Box<dyn ast::Expression>, String> {
         let mut left = self.parse_factor(tokens)?;
 
         while let Some(token) = tokens.peek() {
@@ -100,14 +111,17 @@ impl<'a> Parser<'a> {
 
                     left = Box::new(ast::BinaryExpression::from(left, right, "/".to_string()));
                 }
-                _ => break
+                _ => break,
             }
         }
 
         Ok(left)
     }
 
-    fn parse_factor(&mut self, tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<Box<dyn ast::Expression>, String> {
+    fn parse_factor(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Box<dyn ast::Expression>, String> {
         if let Some(token) = tokens.next() {
             match token {
                 lex::Token::LeftParen => {
@@ -119,9 +133,13 @@ impl<'a> Parser<'a> {
                         Err("Expected ')'".to_string())
                     }
                 }
-                lex::Token::NumberLiteral(number) => Ok(Box::new(ast::NumberExpression::new(number))),
-                lex::Token::Identifier(identifier) => Ok(Box::new(ast::IdentifierExpression::new(identifier))),
-                _ => Err(format!("Unexpected token '{:?}'", token))
+                lex::Token::NumberLiteral(number) => {
+                    Ok(Box::new(ast::NumberExpression::new(number)))
+                }
+                lex::Token::Identifier(identifier) => {
+                    Ok(Box::new(ast::IdentifierExpression::new(identifier)))
+                }
+                _ => Err(format!("Unexpected token '{:?}'", token)),
             }
         } else {
             Err("Expected factor".to_string())

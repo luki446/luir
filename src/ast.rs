@@ -15,7 +15,6 @@ pub trait Statement {
     fn execute(&self, _g: &mut GlobalMap) -> Result<(), String>;
 }
 
-
 pub struct LocalVariableDeclaration {
     name: String,
     value: Box<dyn Expression>,
