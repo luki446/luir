@@ -2,6 +2,9 @@ use clap::Parser;
 
 mod ast;
 mod lex;
+mod parser;
+
+use ast::{GlobalMap, Statement};
 
 #[derive(Parser, Debug)]
 #[clap(version, author = "Lukasz <luki446@gmail.com> Burchard", about)]
@@ -15,9 +18,12 @@ fn main() {
 
     let source_code = std::fs::read_to_string(options.filename).unwrap();
 
-    let mut lexer = lex::Lexer::new(&source_code);
+    let mut parser = parser::Parser::new(&source_code);
+    let mut global_map = GlobalMap::new();
 
-    let tokens = lexer.tokenize().unwrap();
+    let ast = parser.parse().unwrap();
 
-    println!("{:#?}", tokens);
+    ast.execute(&mut global_map).unwrap();
+
+    println!("{:#?}", global_map);
 }
