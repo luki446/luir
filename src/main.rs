@@ -21,7 +21,13 @@ fn main() {
     let mut parser = parser::Parser::new(&source_code);
     let mut global_map = GlobalMap::new();
 
-    let ast = parser.parse().unwrap();
+    let ast = match parser.parse() {
+        Ok(ast) => ast,
+        Err(err) => {
+            eprintln!("{}", err);
+            std::process::exit(1);
+        }
+    };
 
     ast.execute(&mut global_map).unwrap();
 

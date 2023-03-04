@@ -134,10 +134,17 @@ impl<'a> Parser<'a> {
                     }
                 }
                 lex::Token::Literal(LiteralType::Number(number)) => {
-                    Ok(Box::new(ast::NumberExpression::new(number)))
+                    Ok(Box::new(ast::NumberLiteral::new(number)))
                 }
                 lex::Token::Identifier(identifier) => {
                     Ok(Box::new(ast::IdentifierExpression::new(identifier)))
+                }
+                lex::Token::Literal(LiteralType::Boolean(value)) => {
+                    Ok(Box::new(ast::BooleanLiteral::new(value)))
+                }
+                lex::Token::Literal(LiteralType::Nil) => Ok(Box::new(ast::NilLiteral {})),
+                lex::Token::Literal(LiteralType::String(value)) => {
+                    Ok(Box::new(ast::StringLiteral::new(value)))
                 }
                 _ => Err(format!("Unexpected token '{:?}'", token)),
             }

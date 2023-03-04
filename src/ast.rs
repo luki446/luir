@@ -3,6 +3,9 @@ use std::collections::HashMap;
 #[derive(Debug, PartialEq, Clone)]
 pub enum EvalValue {
     Number(f64),
+    Boolean(bool),
+    String(String),
+    Nil,
 }
 
 pub trait Expression {
@@ -32,7 +35,7 @@ impl LocalVariableDeclaration {
     pub fn new() -> Self {
         Self {
             name: String::new(),
-            value: Box::new(NumberExpression { value: 0.0 }),
+            value: Box::new(NumberLiteral { value: 0.0 }),
         }
     }
 
@@ -65,18 +68,58 @@ impl Block {
 }
 
 #[derive(Debug)]
-pub struct NumberExpression {
+pub struct NumberLiteral {
     value: f64,
 }
 
-impl Expression for NumberExpression {
+impl Expression for NumberLiteral {
     fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
         Ok(EvalValue::Number(self.value))
     }
 }
 
-impl NumberExpression {
+impl NumberLiteral {
     pub fn new(value: f64) -> Self {
+        Self { value }
+    }
+}
+
+pub struct BooleanLiteral {
+    value: bool,
+}
+
+impl Expression for BooleanLiteral {
+    fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
+        Ok(EvalValue::Boolean(self.value))
+    }
+}
+
+impl BooleanLiteral {
+    pub fn new(value: bool) -> Self {
+        Self { value }
+    }
+}
+
+pub struct NilLiteral {}
+
+impl Expression for NilLiteral {
+    fn execute(&self, _g: &mut GlobalMap) -> Result<EvalValue, String> {
+        Ok(EvalValue::Nil)
+    }
+}
+
+pub struct StringLiteral {
+    value: String,
+}
+
+impl Expression for StringLiteral {
+    fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
+        Ok(EvalValue::String(self.value.clone()))
+    }
+}
+
+impl StringLiteral {
+    pub fn new(value: String) -> Self {
         Self { value }
     }
 }
@@ -89,8 +132,8 @@ pub struct IdentifierExpression {
 impl Expression for IdentifierExpression {
     fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
         g.get(&self.name)
-            .ok_or(format!("Unknown identifier: '{}'", self.name))
-            .map(|v| v.clone())
+            .cloned()
+            .ok_or_else(|| format!("Undefined variable: '{}'", self.name))
     }
 }
 
@@ -141,7 +184,7 @@ mod ast_tests {
     #[test]
     fn test_number_expression() {
         let mut map: GlobalMap = GlobalMap::new();
-        let expr = NumberExpression { value: 5.0 };
+        let expr = NumberLiteral { value: 5.0 };
         assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(5.0));
     }
 
@@ -149,9 +192,9 @@ mod ast_tests {
     fn test_binary_addition_on_2_numbers() {
         let mut map: GlobalMap = GlobalMap::new();
         let expr = BinaryExpression {
-            left: Box::new(NumberExpression { value: 5.0 }),
+            left: Box::new(NumberLiteral { value: 5.0 }),
             operator: "+".to_string(),
-            right: Box::new(NumberExpression { value: 5.0 }),
+            right: Box::new(NumberLiteral { value: 5.0 }),
         };
         assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(10.0));
     }
@@ -160,9 +203,9 @@ mod ast_tests {
     fn test_binary_subtraction_on_2_numbers() {
         let mut map: GlobalMap = GlobalMap::new();
         let expr = BinaryExpression {
-            left: Box::new(NumberExpression { value: 5.0 }),
+            left: Box::new(NumberLiteral { value: 5.0 }),
             operator: "-".to_string(),
-            right: Box::new(NumberExpression { value: 5.0 }),
+            right: Box::new(NumberLiteral { value: 5.0 }),
         };
         assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(0.0));
     }
@@ -171,9 +214,9 @@ mod ast_tests {
     fn test_binary_multiplication_on_2_numbers() {
         let mut map: GlobalMap = GlobalMap::new();
         let expr = BinaryExpression {
-            left: Box::new(NumberExpression { value: 5.0 }),
+            left: Box::new(NumberLiteral { value: 5.0 }),
             operator: "*".to_string(),
-            right: Box::new(NumberExpression { value: 5.0 }),
+            right: Box::new(NumberLiteral { value: 5.0 }),
         };
         assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(25.0));
     }
@@ -182,9 +225,9 @@ mod ast_tests {
     fn test_binary_division_on_2_numbers() {
         let mut map: GlobalMap = GlobalMap::new();
         let expr = BinaryExpression {
-            left: Box::new(NumberExpression { value: 5.0 }),
+            left: Box::new(NumberLiteral { value: 5.0 }),
             operator: "/".to_string(),
-            right: Box::new(NumberExpression { value: 5.0 }),
+            right: Box::new(NumberLiteral { value: 5.0 }),
         };
         assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(1.0));
     }

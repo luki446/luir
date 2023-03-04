@@ -5,7 +5,7 @@ pub enum LiteralType {
     Number(f64),
     Boolean(bool),
     String(String),
-    Nil
+    Nil,
 }
 
 #[derive(Debug, PartialEq)]
