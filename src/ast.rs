@@ -131,9 +131,7 @@ pub struct IdentifierExpression {
 
 impl Expression for IdentifierExpression {
     fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
-        g.get(&self.name)
-            .cloned()
-            .ok_or_else(|| format!("Undefined variable: '{}'", self.name))
+        Ok(g.get(&self.name).cloned().unwrap_or(EvalValue::Nil))
     }
 }
 
