@@ -26,6 +26,7 @@ pub enum Token {
     LeftParen,
     RightParen,
     Assigment,
+    Dot,
 
     Equal,
     NotEqual,
@@ -122,10 +123,59 @@ impl<'a> Lexer<'a> {
                     tokens.push(Token::RightParen);
                     self.advance();
                 }
-                '=' => {
-                    tokens.push(Token::Assigment);
+                '<' => {
+                    if Some('=') == self.input.clone().next() {
+                        tokens.push(Token::LessThanOrEqual);
+                        self.advance();
+                    } else {
+                        tokens.push(Token::LessThan);
+                    }
+
+                    self.advance();                        
+                }
+                '>' => {
+                    if Some('=') == self.input.clone().next() {
+                        tokens.push(Token::GreaterThanOrEqual);
+                        self.advance();
+                    } else {
+                        tokens.push(Token::GreaterThan);
+                    }
+
                     self.advance();
                 }
+                '=' => {
+                    if Some('=') == self.input.clone().next() {
+                        tokens.push(Token::Equal);
+                        self.advance();
+                    } else {
+                        tokens.push(Token::Assigment);
+                    }
+
+                    self.advance();
+                }
+
+                '~' => {
+                    if Some('=') == self.input.clone().next() {
+                        tokens.push(Token::NotEqual);
+                        self.advance();
+                    } else {
+                        return Err(String::from("Unexpected char after ~ expected ="));
+                    }
+
+                    self.advance();
+                }
+
+                '.' => {
+                    if Some('.') == self.input.clone().next() {
+                        tokens.push(Token::Concatanation);
+                        self.advance();
+                    } else {
+                        tokens.push(Token::Dot);
+                    }
+
+                    self.advance();
+                }
+
                 _ if c.is_whitespace() => {
                     self.consume_whitespace();
                 }
