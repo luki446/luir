@@ -7,6 +7,25 @@ pub struct Parser<'a> {
     lexer: Lexer<'a>,
 }
 
+macro_rules! create_binary_expression {
+    ($parser:expr, $tokens:expr, $parse_next_level_expression:expr, [$( ($op:path, $op_str:expr) ),+]) => {{
+        let mut left = $parse_next_level_expression($parser, $tokens)?;
+
+        while let Some(token) = $tokens.peek() {
+            match token {
+                $( $op => {
+                    $tokens.next();
+                    let right = $parse_next_level_expression($parser, $tokens)?;
+                    left = Box::new(ast::BinaryExpression::from(left, right, $op_str.to_string()));
+                }, )+
+                _ => break,
+            }
+        }
+
+        Ok(left)
+    }};
+}
+
 impl<'a> Parser<'a> {
     pub fn new(source_code: &'a str) -> Self {
         Self {
@@ -64,61 +83,46 @@ impl<'a> Parser<'a> {
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
     ) -> Result<Box<dyn ast::Expression>, String> {
-        let mut left = self.parse_term(tokens)?;
-
-        while let Some(token) = tokens.peek() {
-            match token {
-                lex::Token::Plus => {
-                    tokens.next();
-
-                    let right = self.parse_term(tokens)?;
-
-                    left = Box::new(ast::BinaryExpression::from(left, right, "+".to_string()));
-                }
-                lex::Token::Minus => {
-                    tokens.next();
-
-                    let right = self.parse_term(tokens)?;
-
-                    left = Box::new(ast::BinaryExpression::from(left, right, "-".to_string()));
-                }
-                _ => break,
-            }
-        }
-
-        Ok(left)
+        create_binary_expression!(
+            self,
+            tokens,
+            Self::parse_2_level_expression,
+            [
+                (lex::Token::NotEqual, "~="),
+                (lex::Token::Equal, "=="),
+                (lex::Token::LessThan, "<"),
+                (lex::Token::LessThanOrEqual, "<="),
+                (lex::Token::GreaterThan, ">"),
+                (lex::Token::GreaterThanOrEqual, ">=")
+            ]
+        )
     }
 
-    fn parse_term(
+    fn parse_2_level_expression(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
     ) -> Result<Box<dyn ast::Expression>, String> {
-        let mut left = self.parse_factor(tokens)?;
-
-        while let Some(token) = tokens.peek() {
-            match token {
-                lex::Token::Asterisk => {
-                    tokens.next();
-
-                    let right = self.parse_factor(tokens)?;
-
-                    left = Box::new(ast::BinaryExpression::from(left, right, "*".to_string()));
-                }
-                lex::Token::Slash => {
-                    tokens.next();
-
-                    let right = self.parse_factor(tokens)?;
-
-                    left = Box::new(ast::BinaryExpression::from(left, right, "/".to_string()));
-                }
-                _ => break,
-            }
-        }
-
-        Ok(left)
+        create_binary_expression!(
+            self,
+            tokens,
+            Self::parse_3_level_expression,
+            [(lex::Token::Plus, "+"), (lex::Token::Minus, "-")]
+        )
     }
 
-    fn parse_factor(
+    fn parse_3_level_expression(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Box<dyn ast::Expression>, String> {
+        create_binary_expression!(
+            self,
+            tokens,
+            Self::parse_4_level_expression,
+            [(lex::Token::Asterisk, "*"), (lex::Token::Slash, "/")]
+        )
+    }
+
+    fn parse_4_level_expression(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
     ) -> Result<Box<dyn ast::Expression>, String> {

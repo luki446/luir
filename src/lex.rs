@@ -131,7 +131,7 @@ impl<'a> Lexer<'a> {
                         tokens.push(Token::LessThan);
                     }
 
-                    self.advance();                        
+                    self.advance();
                 }
                 '>' => {
                     if Some('=') == self.input.clone().next() {

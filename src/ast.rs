@@ -73,7 +73,7 @@ pub struct NumberLiteral {
 }
 
 impl Expression for NumberLiteral {
-    fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
+    fn execute(&self, _g: &mut GlobalMap) -> Result<EvalValue, String> {
         Ok(EvalValue::Number(self.value))
     }
 }
@@ -89,7 +89,7 @@ pub struct BooleanLiteral {
 }
 
 impl Expression for BooleanLiteral {
-    fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
+    fn execute(&self, _g: &mut GlobalMap) -> Result<EvalValue, String> {
         Ok(EvalValue::Boolean(self.value))
     }
 }
@@ -113,7 +113,7 @@ pub struct StringLiteral {
 }
 
 impl Expression for StringLiteral {
-    fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
+    fn execute(&self, _g: &mut GlobalMap) -> Result<EvalValue, String> {
         Ok(EvalValue::String(self.value.clone()))
     }
 }
@@ -152,15 +152,28 @@ impl Expression for BinaryExpression {
         let lhs = self.left.execute(g)?;
         let rhs = self.right.execute(g)?;
 
-        match (lhs, rhs) {
+        match (lhs.clone(), rhs.clone()) {
             (EvalValue::Number(left), EvalValue::Number(right)) => match self.operator.as_str() {
                 "+" => Ok(EvalValue::Number(left + right)),
                 "-" => Ok(EvalValue::Number(left - right)),
                 "*" => Ok(EvalValue::Number(left * right)),
                 "/" => Ok(EvalValue::Number(left / right)),
+
+                "<" => Ok(EvalValue::Boolean(left < right)),
+                ">" => Ok(EvalValue::Boolean(left > right)),
+
+                "<=" => Ok(EvalValue::Boolean(left <= right)),
+                ">=" => Ok(EvalValue::Boolean(left >= right)),
+
+                "==" => Ok(EvalValue::Boolean(left == right)),
+                "~=" => Ok(EvalValue::Boolean(left != right)),
+
                 _ => Err(format!("Unknown operator: '{}'", self.operator)),
             },
-            _ => Err("Invalid operands".to_string()),
+            _ => Err(format!(
+                "Invalid expression {:?} {} {:?}",
+                lhs, &self.operator, rhs
+            )),
         }
     }
 }
