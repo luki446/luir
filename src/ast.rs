@@ -8,16 +8,18 @@ pub enum EvalValue {
     Nil,
 }
 
-pub trait Expression {
+
+pub trait Expression : std::fmt::Debug {
     fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String>;
 }
 
 pub type GlobalMap = HashMap<String, EvalValue>;
 
-pub trait Statement {
+pub trait Statement : std::fmt::Debug {
     fn execute(&self, _g: &mut GlobalMap) -> Result<(), String>;
 }
 
+#[derive(Debug)]
 pub struct LocalVariableDeclaration {
     name: String,
     value: Box<dyn Expression>,
@@ -48,6 +50,7 @@ impl LocalVariableDeclaration {
     }
 }
 
+#[derive(Debug)]
 pub struct Block {
     pub statements: Vec<Box<dyn Statement>>,
 }
@@ -84,6 +87,7 @@ impl NumberLiteral {
     }
 }
 
+#[derive(Debug)]
 pub struct BooleanLiteral {
     value: bool,
 }
@@ -100,6 +104,7 @@ impl BooleanLiteral {
     }
 }
 
+#[derive(Debug)]
 pub struct NilLiteral {}
 
 impl Expression for NilLiteral {
@@ -108,6 +113,7 @@ impl Expression for NilLiteral {
     }
 }
 
+#[derive(Debug)]
 pub struct StringLiteral {
     value: String,
 }
@@ -141,6 +147,7 @@ impl IdentifierExpression {
     }
 }
 
+#[derive(Debug)]
 pub struct BinaryExpression {
     left: Box<dyn Expression>,
     operator: String,

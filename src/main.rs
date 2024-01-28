@@ -1,3 +1,5 @@
+use core::panic;
+
 use clap::Parser;
 
 mod ast;
@@ -11,6 +13,8 @@ use ast::{GlobalMap, Statement};
 /// Lua interpreter
 struct CliOptions {
     filename: String,
+    #[arg(short, long)]
+    print_ast: bool,
 }
 
 fn main() {
@@ -24,12 +28,15 @@ fn main() {
     let ast = match parser.parse() {
         Ok(ast) => ast,
         Err(err) => {
-            eprintln!("{}", err);
-            std::process::exit(1);
+            panic!("Error: {}", err);
         }
     };
 
-    ast.execute(&mut global_map).unwrap();
+    if options.print_ast {
+        for statement in &ast.statements {
+            println!("{:#?}", statement);
+        }
+    }
 
-    println!("{:#?}", global_map);
+    ast.execute(&mut global_map).unwrap();
 }
