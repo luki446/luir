@@ -13,7 +13,7 @@ use ast::{GlobalMap, Statement};
 /// Lua interpreter
 struct CliOptions {
     filename: String,
-    #[arg(short, long)]
+    #[arg(short, long, help = "Print AST")]
     print_ast: bool,
 }
 
