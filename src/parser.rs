@@ -46,6 +46,13 @@ impl<'a> Parser<'a> {
                         self.parse_local_variable_declaration(&mut tokens)?;
 
                     statements.push(local_variable_declaration);
+                },
+                lex::Token::Identifier(_) => {
+                    let expression = self.parse_expression(&mut tokens)?;
+
+                    let statement = Box::new(ast::ExpressionStatement::new(expression));
+
+                    statements.push(statement);
                 }
                 _ => return Err(format!("Unexpected token '{:?}'", token)),
             }
@@ -141,7 +148,32 @@ impl<'a> Parser<'a> {
                     Ok(Box::new(ast::NumberLiteral::new(number)))
                 }
                 lex::Token::Identifier(identifier) => {
-                    Ok(Box::new(ast::IdentifierExpression::new(identifier)))
+                    if(tokens.peek() == Some(&lex::Token::LeftParen)) {
+                        tokens.next();
+
+                        let mut arguments = Vec::new();
+
+                        while let Ok(expression) = self.parse_expression(tokens) {
+                            arguments.push(expression);
+
+                            if let Some(lex::Token::Comma) = tokens.peek() {
+                                tokens.next();
+                            } else {
+                                break;
+                            }
+                        
+                        }
+
+                        if(tokens.peek() != Some(&lex::Token::RightParen)) {
+                            return Err("Expected ')'".to_string());
+                        }
+
+                        tokens.next();
+
+                        Ok(Box::new(ast::FunctionCall::new(identifier, arguments)))
+                    } else {
+                        Ok(Box::new(ast::IdentifierExpression::new(identifier)))
+                    }
                 }
                 lex::Token::Literal(LiteralType::Boolean(value)) => {
                     Ok(Box::new(ast::BooleanLiteral::new(value)))

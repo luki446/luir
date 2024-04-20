@@ -5,7 +5,7 @@ pub enum EvalValue {
     Number(f64),
     Boolean(bool),
     String(String),
-    NativeFunction(fn(Vec<EvalValue>) -> Result<(), String>),
+    NativeFunction(fn(Vec<EvalValue>) -> Result<EvalValue, String>),
     Nil,
 }
 
@@ -18,31 +18,6 @@ pub type GlobalMap = HashMap<String, EvalValue>;
 
 pub trait Statement : std::fmt::Debug {
     fn execute(&self, _g: &mut GlobalMap) -> Result<(), String>;
-}
-
-#[derive(Debug)]
-pub struct FunctionCall {
-    name: String,
-    arguments: Vec<Box<dyn Expression>>,
-}
-
-impl FunctionCall {
-    pub fn new(name: String, arguments: Vec<Box<dyn Expression>>) -> Self {
-        Self { name, arguments }
-    }
-}
-
-impl Statement for FunctionCall {
-    fn execute(&self, g: &mut GlobalMap) -> Result<(), String> {
-        let mut args = Vec::new();
-        for arg in &self.arguments {
-            args.push(arg.execute(g)?);
-        }
-        match g.get(&self.name) {
-            Some(EvalValue::NativeFunction(f)) => f(args),
-            _ => Err(format!("Function '{}' not found", self.name)),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -217,6 +192,49 @@ impl BinaryExpression {
             left,
             operator,
             right,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ExpressionStatement {
+    expression: Box<dyn Expression>
+}
+
+impl Statement for ExpressionStatement {
+    fn execute(&self, g: &mut GlobalMap) -> Result<(), String> {
+        self.expression.execute(g)?;
+        Ok(())
+    }
+}
+
+impl ExpressionStatement {
+    pub fn new(expression: Box<dyn Expression>) -> Self {
+        Self { expression }
+    }
+}
+
+#[derive(Debug)]
+pub struct FunctionCall {
+    name: String,
+    arguments: Vec<Box<dyn Expression>>,
+}
+
+impl FunctionCall {
+    pub fn new(name: String, arguments: Vec<Box<dyn Expression>>) -> Self {
+        Self { name, arguments }
+    }
+}
+
+impl Expression for FunctionCall {
+    fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
+        let mut args = Vec::new();
+        for arg in &self.arguments {
+            args.push(arg.execute(g)?);
+        }
+        match g.get(&self.name) {
+            Some(EvalValue::NativeFunction(f)) => f(args),
+            _ => Err(format!("Function '{}' not found", self.name)),
         }
     }
 }

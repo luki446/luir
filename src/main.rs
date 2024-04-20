@@ -36,7 +36,7 @@ fn main() {
         for statement in &ast.statements {
             println!("{:#?}", statement);
         }
+    } else {
+        ast.execute(&mut global_map).unwrap();
     }
-
-    ast.execute(&mut global_map).unwrap();
 }

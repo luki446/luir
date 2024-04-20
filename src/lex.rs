@@ -27,6 +27,7 @@ pub enum Token {
     RightParen,
     Assigment,
     Dot,
+    Comma,
 
     Equal,
     NotEqual,
@@ -173,6 +174,11 @@ impl<'a> Lexer<'a> {
                         tokens.push(Token::Dot);
                     }
 
+                    self.advance();
+                }
+                
+                ',' => {
+                    tokens.push(Token::Comma);
                     self.advance();
                 }
 

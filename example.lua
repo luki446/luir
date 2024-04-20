@@ -7,3 +7,7 @@ local foo4 = nil
 local foo5 = "foo5"
 
 local foo6 = 3 + 3 < 3 * 3
+
+foo + 2
+
+print(2 + 2)
