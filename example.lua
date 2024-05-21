@@ -10,4 +10,4 @@ local foo6 = 3 + 3 < 3 * 3
 
 foo + 2
 
-print(2 + 2)
+print(12 + 34)

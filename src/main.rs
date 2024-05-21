@@ -6,7 +6,7 @@ mod ast;
 mod lex;
 mod parser;
 
-use ast::{GlobalMap, Statement};
+use ast::{Statement, VirtualMachine};
 
 #[derive(Parser, Debug)]
 #[clap(version, author = "Lukasz <luki446@gmail.com> Burchard", about)]
@@ -23,7 +23,7 @@ fn main() {
     let source_code = std::fs::read_to_string(options.filename).unwrap();
 
     let mut parser = parser::Parser::new(&source_code);
-    let mut global_map = GlobalMap::new();
+    let mut global_map = VirtualMachine::new();
 
     let ast = match parser.parse() {
         Ok(ast) => ast,

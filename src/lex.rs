@@ -176,7 +176,7 @@ impl<'a> Lexer<'a> {
 
                     self.advance();
                 }
-                
+
                 ',' => {
                     tokens.push(Token::Comma);
                     self.advance();

@@ -46,7 +46,7 @@ impl<'a> Parser<'a> {
                         self.parse_local_variable_declaration(&mut tokens)?;
 
                     statements.push(local_variable_declaration);
-                },
+                }
                 lex::Token::Identifier(_) => {
                     let expression = self.parse_expression(&mut tokens)?;
 
@@ -148,7 +148,7 @@ impl<'a> Parser<'a> {
                     Ok(Box::new(ast::NumberLiteral::new(number)))
                 }
                 lex::Token::Identifier(identifier) => {
-                    if(tokens.peek() == Some(&lex::Token::LeftParen)) {
+                    if tokens.peek() == Some(&lex::Token::LeftParen) {
                         tokens.next();
 
                         let mut arguments = Vec::new();
@@ -161,10 +161,9 @@ impl<'a> Parser<'a> {
                             } else {
                                 break;
                             }
-                        
                         }
 
-                        if(tokens.peek() != Some(&lex::Token::RightParen)) {
+                        if tokens.peek() != Some(&lex::Token::RightParen) {
                             return Err("Expected ')'".to_string());
                         }
 

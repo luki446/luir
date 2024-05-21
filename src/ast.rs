@@ -9,15 +9,42 @@ pub enum EvalValue {
     Nil,
 }
 
-
-pub trait Expression : std::fmt::Debug {
-    fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String>;
+pub trait Expression: std::fmt::Debug {
+    fn execute(&self, g: &mut VirtualMachine) -> Result<EvalValue, String>;
 }
 
-pub type GlobalMap = HashMap<String, EvalValue>;
+type GlobalMap = HashMap<String, EvalValue>;
 
-pub trait Statement : std::fmt::Debug {
-    fn execute(&self, _g: &mut GlobalMap) -> Result<(), String>;
+pub struct VirtualMachine {
+    pub global_map: GlobalMap,
+}
+
+impl VirtualMachine {
+    pub fn new() -> Self {
+        let mut virtual_machine = VirtualMachine {
+            global_map: HashMap::new(),
+        };
+
+        virtual_machine.global_map.insert(String::from("print"), EvalValue::NativeFunction(|args| {
+            for arg in args {
+                match arg {
+                    EvalValue::Number(n) => print!("{}\t", n),
+                    EvalValue::Boolean(b) => print!("{}\t", b),
+                    EvalValue::String(s) => print!("{}\t", s),
+                    EvalValue::Nil => print!("nil\t"),
+                    _ => return Err("Invalid argument".to_string()),
+                }
+            }
+            println!();
+            Ok(EvalValue::Nil)
+        }));
+
+        virtual_machine
+    }
+}
+
+pub trait Statement: std::fmt::Debug {
+    fn execute(&self, _g: &mut VirtualMachine) -> Result<(), String>;
 }
 
 #[derive(Debug)]
@@ -27,9 +54,9 @@ pub struct LocalVariableDeclaration {
 }
 
 impl Statement for LocalVariableDeclaration {
-    fn execute(&self, g: &mut GlobalMap) -> Result<(), String> {
+    fn execute(&self, g: &mut VirtualMachine) -> Result<(), String> {
         let value = self.value.execute(g)?;
-        g.insert(self.name.clone(), value);
+        g.global_map.insert(self.name.clone(), value);
         Ok(())
     }
 }
@@ -57,7 +84,7 @@ pub struct Block {
 }
 
 impl Statement for Block {
-    fn execute(&self, g: &mut GlobalMap) -> Result<(), String> {
+    fn execute(&self, g: &mut VirtualMachine) -> Result<(), String> {
         for statement in &self.statements {
             statement.execute(g)?;
         }
@@ -77,7 +104,7 @@ pub struct NumberLiteral {
 }
 
 impl Expression for NumberLiteral {
-    fn execute(&self, _g: &mut GlobalMap) -> Result<EvalValue, String> {
+    fn execute(&self, _g: &mut VirtualMachine) -> Result<EvalValue, String> {
         Ok(EvalValue::Number(self.value))
     }
 }
@@ -94,7 +121,7 @@ pub struct BooleanLiteral {
 }
 
 impl Expression for BooleanLiteral {
-    fn execute(&self, _g: &mut GlobalMap) -> Result<EvalValue, String> {
+    fn execute(&self, _g: &mut VirtualMachine) -> Result<EvalValue, String> {
         Ok(EvalValue::Boolean(self.value))
     }
 }
@@ -109,7 +136,7 @@ impl BooleanLiteral {
 pub struct NilLiteral {}
 
 impl Expression for NilLiteral {
-    fn execute(&self, _g: &mut GlobalMap) -> Result<EvalValue, String> {
+    fn execute(&self, _g: &mut VirtualMachine) -> Result<EvalValue, String> {
         Ok(EvalValue::Nil)
     }
 }
@@ -120,7 +147,7 @@ pub struct StringLiteral {
 }
 
 impl Expression for StringLiteral {
-    fn execute(&self, _g: &mut GlobalMap) -> Result<EvalValue, String> {
+    fn execute(&self, _g: &mut VirtualMachine) -> Result<EvalValue, String> {
         Ok(EvalValue::String(self.value.clone()))
     }
 }
@@ -137,8 +164,11 @@ pub struct IdentifierExpression {
 }
 
 impl Expression for IdentifierExpression {
-    fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
-        Ok(g.get(&self.name).cloned().unwrap_or(EvalValue::Nil))
+    fn execute(&self, g: &mut VirtualMachine) -> Result<EvalValue, String> {
+        Ok(g.global_map
+            .get(&self.name)
+            .cloned()
+            .unwrap_or(EvalValue::Nil))
     }
 }
 
@@ -156,7 +186,7 @@ pub struct BinaryExpression {
 }
 
 impl Expression for BinaryExpression {
-    fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
+    fn execute(&self, g: &mut VirtualMachine) -> Result<EvalValue, String> {
         let lhs = self.left.execute(g)?;
         let rhs = self.right.execute(g)?;
 
@@ -198,11 +228,11 @@ impl BinaryExpression {
 
 #[derive(Debug)]
 pub struct ExpressionStatement {
-    expression: Box<dyn Expression>
+    expression: Box<dyn Expression>,
 }
 
 impl Statement for ExpressionStatement {
-    fn execute(&self, g: &mut GlobalMap) -> Result<(), String> {
+    fn execute(&self, g: &mut VirtualMachine) -> Result<(), String> {
         self.expression.execute(g)?;
         Ok(())
     }
@@ -227,12 +257,12 @@ impl FunctionCall {
 }
 
 impl Expression for FunctionCall {
-    fn execute(&self, g: &mut GlobalMap) -> Result<EvalValue, String> {
-        let mut args = Vec::new();
+    fn execute(&self, g: &mut VirtualMachine) -> Result<EvalValue, String> {
+        let mut args: Vec<EvalValue> = Vec::new();
         for arg in &self.arguments {
             args.push(arg.execute(g)?);
         }
-        match g.get(&self.name) {
+        match g.global_map.get(&self.name) {
             Some(EvalValue::NativeFunction(f)) => f(args),
             _ => Err(format!("Function '{}' not found", self.name)),
         }
@@ -245,52 +275,52 @@ mod ast_tests {
 
     #[test]
     fn test_number_expression() {
-        let mut map: GlobalMap = GlobalMap::new();
+        let mut vm: VirtualMachine = VirtualMachine::new();
         let expr = NumberLiteral { value: 5.0 };
-        assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(5.0));
+        assert_eq!(expr.execute(&mut vm).unwrap(), EvalValue::Number(5.0));
     }
 
     #[test]
     fn test_binary_addition_on_2_numbers() {
-        let mut map: GlobalMap = GlobalMap::new();
+        let mut vm: VirtualMachine = VirtualMachine::new();
         let expr = BinaryExpression {
             left: Box::new(NumberLiteral { value: 5.0 }),
             operator: "+".to_string(),
             right: Box::new(NumberLiteral { value: 5.0 }),
         };
-        assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(10.0));
+        assert_eq!(expr.execute(&mut vm).unwrap(), EvalValue::Number(10.0));
     }
 
     #[test]
     fn test_binary_subtraction_on_2_numbers() {
-        let mut map: GlobalMap = GlobalMap::new();
+        let mut vm: VirtualMachine = VirtualMachine::new();
         let expr = BinaryExpression {
             left: Box::new(NumberLiteral { value: 5.0 }),
             operator: "-".to_string(),
             right: Box::new(NumberLiteral { value: 5.0 }),
         };
-        assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(0.0));
+        assert_eq!(expr.execute(&mut vm).unwrap(), EvalValue::Number(0.0));
     }
 
     #[test]
     fn test_binary_multiplication_on_2_numbers() {
-        let mut map: GlobalMap = GlobalMap::new();
+        let mut vm: VirtualMachine = VirtualMachine::new();
         let expr = BinaryExpression {
             left: Box::new(NumberLiteral { value: 5.0 }),
             operator: "*".to_string(),
             right: Box::new(NumberLiteral { value: 5.0 }),
         };
-        assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(25.0));
+        assert_eq!(expr.execute(&mut vm).unwrap(), EvalValue::Number(25.0));
     }
 
     #[test]
     fn test_binary_division_on_2_numbers() {
-        let mut map: GlobalMap = GlobalMap::new();
+        let mut vm: VirtualMachine = VirtualMachine::new();
         let expr = BinaryExpression {
             left: Box::new(NumberLiteral { value: 5.0 }),
             operator: "/".to_string(),
             right: Box::new(NumberLiteral { value: 5.0 }),
         };
-        assert_eq!(expr.execute(&mut map).unwrap(), EvalValue::Number(1.0));
+        assert_eq!(expr.execute(&mut vm).unwrap(), EvalValue::Number(1.0));
     }
 }
