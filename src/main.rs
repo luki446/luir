@@ -25,7 +25,7 @@ fn main() {
     let mut parser = parser::Parser::new(&source_code);
     let mut global_map = VirtualMachine::new();
 
-    let ast = match parser.parse_file_level() {
+    let ast = match parser.parse() {
         Ok(ast) => ast,
         Err(err) => {
             panic!("Error: {}", err);

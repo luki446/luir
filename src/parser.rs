@@ -33,7 +33,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_file_level(&mut self) -> Result<ast::Block, String> {
+    pub fn parse(&mut self) -> Result<ast::Block, String> {
         let mut statements = Vec::new();
 
         let tokens = self.lexer.tokenize()?;
