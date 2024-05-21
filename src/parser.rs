@@ -1,5 +1,5 @@
 use crate::{
-    ast,
+    ast::{self, IfStatement},
     lex::{self, Lexer, LiteralType},
 };
 
@@ -33,29 +33,62 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Result<ast::Block, String> {
+    pub fn parse_file_level(&mut self) -> Result<ast::Block, String> {
         let mut statements = Vec::new();
 
         let tokens = self.lexer.tokenize()?;
         let mut tokens = tokens.into_iter().peekable();
 
-        while let Some(token) = tokens.peek() {
-            match token {
-                lex::Token::Local => {
-                    let local_variable_declaration =
-                        self.parse_local_variable_declaration(&mut tokens)?;
+        while let Some(_) = tokens.peek() {
+            statements.push(self.parse_single_statement(&mut tokens)?);
+        }
 
-                    statements.push(local_variable_declaration);
-                }
-                lex::Token::Identifier(_) => {
-                    let expression = self.parse_expression(&mut tokens)?;
+        Ok(ast::Block::new(statements))
+    }
 
-                    let statement = Box::new(ast::ExpressionStatement::new(expression));
+    fn parse_single_statement(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Box<dyn ast::Statement>, String> {
+        let token = tokens.peek();
 
-                    statements.push(statement);
-                }
-                _ => return Err(format!("Unexpected token '{:?}'", token)),
+        match token {
+            Some(lex::Token::Local) => self.parse_local_variable_declaration(tokens),
+            Some(lex::Token::Identifier(_)) => {
+                let expression = self.parse_expression(tokens)?;
+
+                Ok(Box::new(ast::ExpressionStatement::new(expression)))
             }
+            Some(lex::Token::If) => {
+                tokens.next();
+
+                let condition = self.parse_expression(tokens)?;
+
+                self.expect(tokens, lex::Token::Then)?;
+
+                let main_block = self.parse_block_until(tokens, &[lex::Token::End, lex::Token::ElseIf, lex::Token::Else])?;
+                
+                self.expect(tokens, lex::Token::End)?;
+
+                Ok(Box::new(IfStatement::new(condition, main_block)))
+            }
+            _ => Err(format!("Unexpected token '{:?}'", token)),
+        }
+    }
+
+    fn parse_block_until(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+        end_tokens: &[lex::Token],
+    ) -> Result<ast::Block, String> {
+        let mut statements = Vec::new();
+
+        while let Some(token) = tokens.peek() {
+            if end_tokens.contains(token) {
+                break;
+            }
+
+            statements.push(self.parse_single_statement(tokens)?);
         }
 
         Ok(ast::Block::new(statements))
@@ -185,6 +218,19 @@ impl<'a> Parser<'a> {
             }
         } else {
             Err("Expected factor".to_string())
+        }
+    }
+
+    fn expect(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+        expected: lex::Token
+    ) -> Result<(), String> {
+        let next_token = tokens.next();
+        if  next_token == Some(expected.clone()) {
+            Ok(())
+        } else {
+            Err(format!("Expected '{:?}'", expected))
         }
     }
 }

@@ -10,4 +10,12 @@ local foo6 = 3 + 3 < 3 * 3
 
 foo + 2
 
-print(12 + 34)
+print(12 + 34, 2137, "elo")
+
+if 1 < 23 then
+    print("1 < 23")
+end
+
+if 1 > 23 then
+    print("1 > 23")
+end

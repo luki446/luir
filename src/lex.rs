@@ -1,6 +1,6 @@
 use std::str::Chars;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum LiteralType {
     Number(f64),
     Boolean(bool),
@@ -8,7 +8,7 @@ pub enum LiteralType {
     Nil,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     // Keywords
     Local,
@@ -37,6 +37,12 @@ pub enum Token {
     GreaterThanOrEqual,
 
     Concatanation,
+
+    If,
+    Then,
+    Else,
+    ElseIf,
+    End,
 }
 
 pub struct Lexer<'a> {
@@ -84,6 +90,11 @@ impl<'a> Lexer<'a> {
             "nil" => Token::Literal(LiteralType::Nil),
             "true" => Token::Literal(LiteralType::Boolean(true)),
             "false" => Token::Literal(LiteralType::Boolean(false)),
+            "if" => Token::If,
+            "then" => Token::Then,
+            "else" => Token::Else,
+            "elseif" => Token::ElseIf,
+            "end" => Token::End,
             _ => Token::Identifier(id),
         }
     }

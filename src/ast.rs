@@ -25,19 +25,22 @@ impl VirtualMachine {
             global_map: HashMap::new(),
         };
 
-        virtual_machine.global_map.insert(String::from("print"), EvalValue::NativeFunction(|args| {
-            for arg in args {
-                match arg {
-                    EvalValue::Number(n) => print!("{}\t", n),
-                    EvalValue::Boolean(b) => print!("{}\t", b),
-                    EvalValue::String(s) => print!("{}\t", s),
-                    EvalValue::Nil => print!("nil\t"),
-                    _ => return Err("Invalid argument".to_string()),
+        virtual_machine.global_map.insert(
+            String::from("print"),
+            EvalValue::NativeFunction(|args| {
+                for arg in args {
+                    match arg {
+                        EvalValue::Number(n) => print!("{}\t", n),
+                        EvalValue::Boolean(b) => print!("{}\t", b),
+                        EvalValue::String(s) => print!("{}\t", s),
+                        EvalValue::Nil => print!("nil\t"),
+                        _ => return Err("Invalid argument".to_string()),
+                    }
                 }
-            }
-            println!();
-            Ok(EvalValue::Nil)
-        }));
+                println!();
+                Ok(EvalValue::Nil)
+            }),
+        );
 
         virtual_machine
     }
@@ -96,6 +99,49 @@ impl Block {
     pub fn new(statements: Vec<Box<dyn Statement>>) -> Self {
         Self { statements }
     }
+}
+
+#[derive(Debug)]
+pub struct IfStatement {
+    basic_condition: Box<dyn Expression>,
+    code_block: Block,
+
+    elseif_statements: Vec<(Box<dyn Expression>, Block)>,
+    else_block: Option<Block>,
+}
+
+impl Statement for IfStatement {
+    fn execute(&self, g: &mut VirtualMachine) -> Result<(), String> {
+        if self.basic_condition.execute(g)? == EvalValue::Boolean(true) {
+            self.code_block.execute(g)?;
+        } else {
+            for (condition, block) in &self.elseif_statements {
+                if condition.execute(g)? == EvalValue::Boolean(true) {
+                    block.execute(g)?;
+                    return Ok(());
+                }
+            }
+            if let Some(block) = &self.else_block {
+                block.execute(g)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl IfStatement {
+    pub fn new(
+        basic_condition: Box<dyn Expression>,
+        code_block: Block,
+    ) -> Self {
+        Self {
+            basic_condition,
+            code_block,
+            elseif_statements: Vec::new(),
+            else_block: None,
+        }
+    }
+
 }
 
 #[derive(Debug)]
