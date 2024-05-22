@@ -1,5 +1,5 @@
 use crate::{
-    ast::{self, IfStatement},
+    ast::{self, IfStatement, LocalVariableDeclaration},
     lex::{self, Lexer, LiteralType},
 };
 
@@ -125,25 +125,24 @@ impl<'a> Parser<'a> {
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
     ) -> Result<Box<dyn ast::Statement>, String> {
-        let mut local_variable_declaration = ast::LocalVariableDeclaration::new();
-
         tokens.next();
 
+        let local_variable_identifier = self.parse_identifier(tokens)?;
+
+        self.expect(tokens, lex::Token::Assigment)?;
+
+        let expression = self.parse_expression(tokens)?;
+
+        Ok(Box::new(LocalVariableDeclaration::new(local_variable_identifier, expression)))
+    }
+
+    fn parse_identifier(&mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<String, String> {
         if let Some(lex::Token::Identifier(identifier)) = tokens.next() {
-            local_variable_declaration.set_identifier(identifier);
+            Ok(identifier)
         } else {
-            return Err("Expected identifier".to_string());
+            Err("Expected identifier".to_string())
         }
-
-        if let Some(lex::Token::Assigment) = tokens.next() {
-            let expression = self.parse_expression(tokens)?;
-
-            local_variable_declaration.set_expression(expression);
-        } else {
-            return Err("Expected '='".to_string());
-        }
-
-        Ok(Box::new(local_variable_declaration))
     }
 
     fn parse_expression(

@@ -74,19 +74,11 @@ impl Statement for LocalVariableDeclaration {
 }
 
 impl LocalVariableDeclaration {
-    pub fn new() -> Self {
+    pub fn new(name: String, value: Box<dyn Expression>) -> Self {
         Self {
-            name: String::new(),
-            value: Box::new(NumberLiteral { value: 0.0 }),
+            name,
+            value,
         }
-    }
-
-    pub fn set_identifier(&mut self, identifier: String) {
-        self.name = identifier;
-    }
-
-    pub fn set_expression(&mut self, expression: Box<dyn Expression>) {
-        self.value = expression;
     }
 }
 
