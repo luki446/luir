@@ -12,10 +12,12 @@ foo + 2
 
 print(12 + 34, 2137, "elo")
 
-if 1 < 23 then
-    print("1 < 23")
-end
+local foo = 1
 
-if 1 > 23 then
-    print("1 > 23")
+if foo < 23 then
+    print("foo < 23")
+elseif foo == 23 then
+    print("foo == 23")
+else
+    print("foo > 23")
 end

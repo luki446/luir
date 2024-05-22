@@ -59,21 +59,48 @@ impl<'a> Parser<'a> {
 
                 Ok(Box::new(ast::ExpressionStatement::new(expression)))
             }
-            Some(lex::Token::If) => {
-                tokens.next();
-
-                let condition = self.parse_expression(tokens)?;
-
-                self.expect(tokens, lex::Token::Then)?;
-
-                let main_block = self.parse_block_until(tokens, &[lex::Token::End, lex::Token::ElseIf, lex::Token::Else])?;
-                
-                self.expect(tokens, lex::Token::End)?;
-
-                Ok(Box::new(IfStatement::new(condition, main_block)))
-            }
+            Some(lex::Token::If) => self.parse_if_statement(tokens),
             _ => Err(format!("Unexpected token '{:?}'", token)),
         }
+    }
+
+    fn parse_if_statement(
+        &mut self, 
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>
+    ) -> Result<Box<dyn ast::Statement>, String> {
+        tokens.next();
+
+        let condition = self.parse_expression(tokens)?;
+
+        self.expect(tokens, lex::Token::Then)?;
+
+        let main_block = self.parse_block_until(tokens, &[lex::Token::End, lex::Token::ElseIf, lex::Token::Else])?;
+        
+        let mut elseif_statements = Vec::new();
+
+        while let Some(lex::Token::ElseIf) = tokens.peek() {
+            tokens.next();
+
+            let condition = self.parse_expression(tokens)?;
+
+            self.expect(tokens, lex::Token::Then)?;
+
+            let block = self.parse_block_until(tokens, &[lex::Token::End, lex::Token::ElseIf, lex::Token::Else])?;
+
+            elseif_statements.push((condition, block));
+        }
+
+        let else_block = if let Some(lex::Token::Else) = tokens.peek() {
+            tokens.next();
+
+            Some(self.parse_block_until(tokens, &[lex::Token::End])?)
+        } else {
+            None
+        };
+
+        self.expect(tokens, lex::Token::End)?;
+
+        Ok(Box::new(IfStatement::new(condition, main_block, elseif_statements, else_block)))
     }
 
     fn parse_block_until(

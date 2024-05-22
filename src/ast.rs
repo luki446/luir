@@ -9,6 +9,15 @@ pub enum EvalValue {
     Nil,
 }
 
+impl EvalValue {
+    pub fn is_true(&self) -> bool {
+        match self {
+            EvalValue::Boolean(false) | EvalValue::Nil => false,
+            _ => true,
+        }
+    }
+}
+
 pub trait Expression: std::fmt::Debug {
     fn execute(&self, g: &mut VirtualMachine) -> Result<EvalValue, String>;
 }
@@ -112,11 +121,11 @@ pub struct IfStatement {
 
 impl Statement for IfStatement {
     fn execute(&self, g: &mut VirtualMachine) -> Result<(), String> {
-        if self.basic_condition.execute(g)? == EvalValue::Boolean(true) {
+        if self.basic_condition.execute(g)?.is_true() {
             self.code_block.execute(g)?;
         } else {
             for (condition, block) in &self.elseif_statements {
-                if condition.execute(g)? == EvalValue::Boolean(true) {
+                if condition.execute(g)?.is_true() {
                     block.execute(g)?;
                     return Ok(());
                 }
@@ -133,12 +142,14 @@ impl IfStatement {
     pub fn new(
         basic_condition: Box<dyn Expression>,
         code_block: Block,
+        elseif_statements: Vec<(Box<dyn Expression>, Block)>,
+        else_block: Option<Block>,
     ) -> Self {
         Self {
             basic_condition,
             code_block,
-            elseif_statements: Vec::new(),
-            else_block: None,
+            elseif_statements,
+            else_block
         }
     }
 
