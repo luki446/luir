@@ -39,7 +39,7 @@ impl<'a> Parser<'a> {
         let tokens = self.lexer.tokenize()?;
         let mut tokens = tokens.into_iter().peekable();
 
-        while let Some(_) = tokens.peek() {
+        while tokens.peek().is_some() {
             statements.push(self.parse_single_statement(&mut tokens)?);
         }
 
@@ -65,8 +65,8 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_if_statement(
-        &mut self, 
-        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
     ) -> Result<Box<dyn ast::Statement>, String> {
         tokens.next();
 
@@ -74,8 +74,11 @@ impl<'a> Parser<'a> {
 
         self.expect(tokens, lex::Token::Then)?;
 
-        let main_block = self.parse_block_until(tokens, &[lex::Token::End, lex::Token::ElseIf, lex::Token::Else])?;
-        
+        let main_block = self.parse_block_until(
+            tokens,
+            &[lex::Token::End, lex::Token::ElseIf, lex::Token::Else],
+        )?;
+
         let mut elseif_statements = Vec::new();
 
         while let Some(lex::Token::ElseIf) = tokens.peek() {
@@ -85,7 +88,10 @@ impl<'a> Parser<'a> {
 
             self.expect(tokens, lex::Token::Then)?;
 
-            let block = self.parse_block_until(tokens, &[lex::Token::End, lex::Token::ElseIf, lex::Token::Else])?;
+            let block = self.parse_block_until(
+                tokens,
+                &[lex::Token::End, lex::Token::ElseIf, lex::Token::Else],
+            )?;
 
             elseif_statements.push((condition, block));
         }
@@ -100,7 +106,12 @@ impl<'a> Parser<'a> {
 
         self.expect(tokens, lex::Token::End)?;
 
-        Ok(Box::new(IfStatement::new(condition, main_block, elseif_statements, else_block)))
+        Ok(Box::new(IfStatement::new(
+            condition,
+            main_block,
+            elseif_statements,
+            else_block,
+        )))
     }
 
     fn parse_block_until(
@@ -133,11 +144,16 @@ impl<'a> Parser<'a> {
 
         let expression = self.parse_expression(tokens)?;
 
-        Ok(Box::new(LocalVariableDeclaration::new(local_variable_identifier, expression)))
+        Ok(Box::new(LocalVariableDeclaration::new(
+            local_variable_identifier,
+            expression,
+        )))
     }
 
-    fn parse_identifier(&mut self,
-        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<String, String> {
+    fn parse_identifier(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<String, String> {
         if let Some(lex::Token::Identifier(identifier)) = tokens.next() {
             Ok(identifier)
         } else {
@@ -250,10 +266,10 @@ impl<'a> Parser<'a> {
     fn expect(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
-        expected: lex::Token
+        expected: lex::Token,
     ) -> Result<(), String> {
         let next_token = tokens.next();
-        if  next_token == Some(expected.clone()) {
+        if next_token == Some(expected.clone()) {
             Ok(())
         } else {
             Err(format!("Expected '{:?}'", expected))

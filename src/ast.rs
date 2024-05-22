@@ -11,10 +11,7 @@ pub enum EvalValue {
 
 impl EvalValue {
     pub fn is_true(&self) -> bool {
-        match self {
-            EvalValue::Boolean(false) | EvalValue::Nil => false,
-            _ => true,
-        }
+        !matches!(self, EvalValue::Nil | EvalValue::Boolean(false))
     }
 }
 
@@ -22,19 +19,19 @@ pub trait Expression: std::fmt::Debug {
     fn execute(&self, g: &mut VirtualMachine) -> Result<EvalValue, String>;
 }
 
-type GlobalMap = HashMap<String, EvalValue>;
+type ValueMap = HashMap<String, EvalValue>;
 
 pub struct VirtualMachine {
-    pub global_map: GlobalMap,
+    scopes_stack: Vec<ValueMap>,
 }
 
 impl VirtualMachine {
     pub fn new() -> Self {
         let mut virtual_machine = VirtualMachine {
-            global_map: HashMap::new(),
+            scopes_stack: vec![ValueMap::new()],
         };
 
-        virtual_machine.global_map.insert(
+        virtual_machine.declare_variable(
             String::from("print"),
             EvalValue::NativeFunction(|args| {
                 for arg in args {
@@ -53,6 +50,30 @@ impl VirtualMachine {
 
         virtual_machine
     }
+
+    pub fn enter_scope(&mut self) {
+        self.scopes_stack.push(ValueMap::new());
+    }
+
+    pub fn exit_scope(&mut self) {
+        self.scopes_stack.pop();
+    }
+
+    pub fn declare_variable(&mut self, name: String, value: EvalValue) {
+        self.scopes_stack
+            .last_mut()
+            .expect("No scope found")
+            .insert(name, value);
+    }
+
+    pub fn lookup_variable(&self, name: &str) -> Option<EvalValue> {
+        for scope in self.scopes_stack.iter().rev() {
+            if let Some(value) = scope.get(name) {
+                return Some(value.clone());
+            }
+        }
+        None
+    }
 }
 
 pub trait Statement: std::fmt::Debug {
@@ -68,17 +89,14 @@ pub struct LocalVariableDeclaration {
 impl Statement for LocalVariableDeclaration {
     fn execute(&self, g: &mut VirtualMachine) -> Result<(), String> {
         let value = self.value.execute(g)?;
-        g.global_map.insert(self.name.clone(), value);
+        g.declare_variable(self.name.clone(), value);
         Ok(())
     }
 }
 
 impl LocalVariableDeclaration {
     pub fn new(name: String, value: Box<dyn Expression>) -> Self {
-        Self {
-            name,
-            value,
-        }
+        Self { name, value }
     }
 }
 
@@ -89,9 +107,11 @@ pub struct Block {
 
 impl Statement for Block {
     fn execute(&self, g: &mut VirtualMachine) -> Result<(), String> {
+        g.enter_scope();
         for statement in &self.statements {
             statement.execute(g)?;
         }
+        g.exit_scope();
         Ok(())
     }
 }
@@ -106,7 +126,6 @@ impl Block {
 pub struct IfStatement {
     basic_condition: Box<dyn Expression>,
     code_block: Block,
-
     elseif_statements: Vec<(Box<dyn Expression>, Block)>,
     else_block: Option<Block>,
 }
@@ -141,10 +160,9 @@ impl IfStatement {
             basic_condition,
             code_block,
             elseif_statements,
-            else_block
+            else_block,
         }
     }
-
 }
 
 #[derive(Debug)]
@@ -214,10 +232,7 @@ pub struct IdentifierExpression {
 
 impl Expression for IdentifierExpression {
     fn execute(&self, g: &mut VirtualMachine) -> Result<EvalValue, String> {
-        Ok(g.global_map
-            .get(&self.name)
-            .cloned()
-            .unwrap_or(EvalValue::Nil))
+        Ok(g.lookup_variable(&self.name).unwrap_or(EvalValue::Nil))
     }
 }
 
@@ -311,7 +326,7 @@ impl Expression for FunctionCall {
         for arg in &self.arguments {
             args.push(arg.execute(g)?);
         }
-        match g.global_map.get(&self.name) {
+        match g.lookup_variable(&self.name) {
             Some(EvalValue::NativeFunction(f)) => f(args),
             _ => Err(format!("Function '{}' not found", self.name)),
         }

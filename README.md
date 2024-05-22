@@ -40,6 +40,7 @@ Release v1.0.0 will mark the first stable complete-ish release of Luir. The foll
 - [x] Basic Lua statement parsing and lexing.
 - [x] Calling native (Rust implemented) functions from Lua.
 - [x] If statement.
+- [x] Local variable scoping.
 - [ ] While loop
 - [ ] For loop.
 - [ ] Repeat-until loop.
