@@ -43,6 +43,9 @@ pub enum Token {
     Else,
     ElseIf,
     End,
+
+    While,
+    Do,
 }
 
 pub struct Lexer<'a> {
@@ -95,6 +98,8 @@ impl<'a> Lexer<'a> {
             "else" => Token::Else,
             "elseif" => Token::ElseIf,
             "end" => Token::End,
+            "while" => Token::While,
+            "do" => Token::Do,
             _ => Token::Identifier(id),
         }
     }

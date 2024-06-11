@@ -74,6 +74,14 @@ impl VirtualMachine {
         }
         None
     }
+
+    pub fn change_or_create_value(&mut self, name: String, value: EvalValue) {
+        let mut target_scope = self.scopes_stack.iter_mut().rev().find(|v| v.contains_key(&name));
+        if target_scope.is_none() {
+            target_scope = self.scopes_stack.first_mut()
+        }
+        target_scope.unwrap().insert(name, value); 
+    }
 }
 
 pub trait Statement: std::fmt::Debug {
@@ -101,6 +109,30 @@ impl LocalVariableDeclaration {
 }
 
 #[derive(Debug)]
+pub struct AssigmentStatement {
+    identifier: String,
+    expression: Box<dyn Expression>
+}
+
+impl Statement for AssigmentStatement {
+    fn execute(&self, _g: &mut VirtualMachine) -> Result<(), String> {
+        let expression_result = self.expression.execute(_g)?;
+        _g.change_or_create_value(self.identifier.clone(), expression_result);
+
+        Ok(())
+    }
+}
+
+impl AssigmentStatement {
+    pub fn new(identifier: String, expression: Box<dyn Expression>) -> Self {
+        Self {
+            identifier,
+            expression
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Block {
     pub statements: Vec<Box<dyn Statement>>,
 }
@@ -119,6 +151,30 @@ impl Statement for Block {
 impl Block {
     pub fn new(statements: Vec<Box<dyn Statement>>) -> Self {
         Self { statements }
+    }
+}
+
+#[derive(Debug)]
+pub struct WhileLoop {
+    looping_condition: Box<dyn Expression>,
+    code_block: Block,
+}
+
+impl Statement for WhileLoop {
+    fn execute(&self, g: &mut VirtualMachine) -> Result<(), String> {
+        while self.looping_condition.execute(g)?.is_true() {
+            self.code_block.execute(g)?;
+        }
+        Ok(())
+    }
+}
+
+impl WhileLoop {
+    pub fn new(looping_condition: Box<dyn Expression>, code_block: Block) -> Self {
+        Self {
+            looping_condition,
+            code_block,
+        }
     }
 }
 

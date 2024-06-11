@@ -8,16 +8,11 @@ local foo5 = "foo5"
 
 local foo6 = 3 + 3 < 3 * 3
 
-foo + 2
-
 print(12 + 34, 2137, "elo")
 
-local foo = 1
+foo = 1
 
-if foo < 23 then
-    print("foo < 23")
-elseif foo == 23 then
-    print("foo == 23")
-else
-    print("foo > 23")
+while foo < 20 do
+  print(foo)
+  foo = foo + 1
 end
