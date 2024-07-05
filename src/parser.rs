@@ -1,5 +1,5 @@
 use crate::{
-    ast::{self, IfStatement, LocalVariableDeclaration, WhileLoop, Statement, AssigmentStatement},
+    ast::{self, AssigmentStatement, Expression, IfStatement, LocalVariableDeclaration, Statement, WhileLoop},
     lex::{self, Lexer, LiteralType},
 };
 
@@ -68,6 +68,7 @@ impl<'a> Parser<'a> {
             }
             Some(lex::Token::If) => self.parse_if_statement(tokens),
             Some(lex::Token::While) => self.parse_while_loop(tokens),
+            Some(lex::Token::For) => self.parse_for_loop(tokens),
             _ => Err(format!("Unexpected top-level token '{:?}'", token)),
         }
     }
@@ -85,6 +86,32 @@ impl<'a> Parser<'a> {
         let loop_block = self.parse_block_until(tokens, &[lex::Token::End])?;
 
         Ok(Box::new(WhileLoop::new(loop_condition, loop_block)))
+    }
+
+    fn parse_for_loop(&mut self, tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<Box<dyn Statement>, String> {
+        tokens.next();
+
+        let loop_variable = self.parse_identifier(tokens)?;
+        
+        self.expect(tokens, lex::Token::Assigment)?;
+
+        let start_value = self.parse_expression(tokens)?;
+        self.expect(tokens, lex::Token::Comma)?;
+
+        let end_value = self.parse_expression(tokens)?;
+
+        let mut step_value: Box<dyn Expression> = Box::new(ast::NumberLiteral::new(1.0));
+
+        if tokens.peek() == Some(&lex::Token::Comma) {
+            tokens.next();
+            step_value = self.parse_expression(tokens)?;
+        }
+
+        self.expect(tokens, lex::Token::Do)?;
+
+        let loop_block = self.parse_block_until(tokens, &[lex::Token::End])?;
+
+        Ok(Box::new(ast::ForLoop::new(loop_variable, start_value, end_value, step_value, loop_block)))
     }
 
     fn parse_if_statement(

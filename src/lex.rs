@@ -45,6 +45,7 @@ pub enum Token {
     End,
 
     While,
+    For,
     Do,
 }
 
@@ -86,7 +87,7 @@ impl<'a> Lexer<'a> {
         self.consume_while(char::is_whitespace);
     }
 
-    fn consume_identifier(&mut self) -> Token {
+    fn consume_identifier_or_keyword(&mut self) -> Token {
         let id = self.consume_while(|c| c.is_alphanumeric() || c == '_');
         match id.as_str() {
             "local" => Token::Local,
@@ -99,6 +100,7 @@ impl<'a> Lexer<'a> {
             "elseif" => Token::ElseIf,
             "end" => Token::End,
             "while" => Token::While,
+            "for" => Token::For,
             "do" => Token::Do,
             _ => Token::Identifier(id),
         }
@@ -205,7 +207,7 @@ impl<'a> Lexer<'a> {
                     tokens.push(self.consume_number()?);
                 }
                 _ if c.is_ascii_alphabetic() => {
-                    tokens.push(self.consume_identifier());
+                    tokens.push(self.consume_identifier_or_keyword());
                 }
                 '"' => {
                     self.advance();

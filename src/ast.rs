@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub enum EvalValue {
     Number(f64),
     Boolean(bool),
@@ -179,6 +179,61 @@ impl WhileLoop {
 }
 
 #[derive(Debug)]
+pub struct ForLoop {
+    iterator_identifier: String,
+    starting_value: Box<dyn Expression>,
+    ending_value: Box<dyn Expression>,
+    step_value: Box<dyn Expression>,
+    code_block: Block,
+}
+
+impl ForLoop {
+    pub fn new(
+        iterator_identifier: String,
+        starting_value: Box<dyn Expression>,
+        ending_value: Box<dyn Expression>,
+        step_value: Box<dyn Expression>,
+        code_block: Block,
+    ) -> Self {
+        Self {
+            iterator_identifier,
+            starting_value,
+            ending_value,
+            step_value,
+            code_block,
+        }
+    }
+}
+
+impl Statement for ForLoop {
+    fn execute(&self, g: &mut VirtualMachine) -> Result<(), String> {
+        g.enter_scope();        
+        
+        let starting_value = self.starting_value.execute(g)?;
+        g.declare_variable(self.iterator_identifier.clone(), starting_value);
+
+        let step_value = match self.step_value.execute(g)? {
+            EvalValue::Number(n) => n,
+            _ => return Err("Invalid step value".to_string())
+        };
+
+        while g.lookup_variable(&self.iterator_identifier).unwrap() <= self.ending_value.execute(g)? {
+            self.code_block.execute(g)?;
+
+            let current_value = match g.lookup_variable(&self.iterator_identifier) {
+                Some(EvalValue::Number(n)) => n,
+                _ => return Err(format!("Invalid {} value", self.iterator_identifier))
+            } + step_value;
+
+            g.change_or_create_value(self.iterator_identifier.clone(), EvalValue::Number(current_value));
+        }
+
+        g.exit_scope();
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
 pub struct IfStatement {
     basic_condition: Box<dyn Expression>,
     code_block: Block,
@@ -188,6 +243,8 @@ pub struct IfStatement {
 
 impl Statement for IfStatement {
     fn execute(&self, g: &mut VirtualMachine) -> Result<(), String> {
+        g.enter_scope();
+
         if self.basic_condition.execute(g)?.is_true() {
             self.code_block.execute(g)?;
         } else {
@@ -201,6 +258,8 @@ impl Statement for IfStatement {
                 block.execute(g)?;
             }
         }
+
+        g.exit_scope();
         Ok(())
     }
 }

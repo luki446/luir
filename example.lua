@@ -10,9 +10,6 @@ local foo6 = 3 + 3 < 3 * 3
 
 print(12 + 34, 2137, "elo")
 
-foo = 1
-
-while foo < 20 do
-  print(foo)
-  foo = foo + 1
+for i = 1, 20 do
+  print("i", i)
 end
