@@ -1,6 +1,6 @@
 use crate::ast::EvalValue;
-use std::collections::HashMap;
 use crate::ast::Statement;
+use std::collections::HashMap;
 
 type ValueMap = HashMap<String, EvalValue>;
 
@@ -69,7 +69,7 @@ impl VirtualMachine {
         }
         target_scope.unwrap().insert(name, value);
     }
-    
+
     pub fn execute(&mut self, ast: &Vec<Statement>) -> Result<(), String> {
         for stat in ast {
             stat.execute(self)?;

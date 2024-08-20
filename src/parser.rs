@@ -85,11 +85,10 @@ impl<'a> Parser<'a> {
 
         self.expect(tokens, lex::Token::End)?;
 
-        let statement = Ok(Statement::WhileLoop {
+        Ok(Statement::WhileLoop {
             loop_condition: Box::new(loop_condition),
             code_block: loop_block,
-        });
-        statement
+        })
     }
 
     fn parse_for_loop(
@@ -172,8 +171,8 @@ impl<'a> Parser<'a> {
         Ok(Statement::IfStatement {
             basic_condition: Box::new(condition),
             code_block: main_block,
-            elseif_statements: elseif_statements,
-            else_block: else_block,
+            elseif_statements,
+            else_block,
         })
     }
 
