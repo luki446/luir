@@ -12,6 +12,7 @@ pub enum LiteralType {
 pub enum Token {
     // Keywords
     Local,
+    Function,
 
     Identifier(String),
 
@@ -91,6 +92,7 @@ impl<'a> Lexer<'a> {
         let id = self.consume_while(|c| c.is_alphanumeric() || c == '_');
         match id.as_str() {
             "local" => Token::Local,
+            "function" => Token::Function,
             "nil" => Token::Literal(LiteralType::Nil),
             "true" => Token::Literal(LiteralType::Boolean(true)),
             "false" => Token::Literal(LiteralType::Boolean(false)),

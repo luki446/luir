@@ -1,5 +1,5 @@
 use crate::{
-    ast::{self, AssigmentStatement, Expression, IfStatement, LocalVariableDeclaration, Statement, WhileLoop},
+    ast::{Expression, Statement},
     lex::{self, Lexer, LiteralType},
 };
 
@@ -16,7 +16,7 @@ macro_rules! create_binary_expression {
                 $( $op => {
                     $tokens.next();
                     let right = $parse_next_level_expression($parser, $tokens)?;
-                    left = Box::new(ast::BinaryExpression::from(left, right, $op_str.to_string()));
+                    left = Expression::BinaryExpression(Box::new(left), $op_str.to_string(), Box::new(right));
                 }, )+
                 _ => break,
             }
@@ -33,7 +33,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Result<ast::Block, String> {
+    pub fn parse(&mut self) -> Result<Vec<Statement>, String> {
         let mut statements = Vec::new();
 
         let tokens = self.lexer.tokenize()?;
@@ -43,13 +43,13 @@ impl<'a> Parser<'a> {
             statements.push(self.parse_single_statement(&mut tokens)?);
         }
 
-        Ok(ast::Block::new(statements))
+        Ok(statements)
     }
 
     fn parse_single_statement(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
-    ) -> Result<Box<dyn ast::Statement>, String> {
+    ) -> Result<Statement, String> {
         let token = tokens.peek();
 
         match token {
@@ -61,10 +61,8 @@ impl<'a> Parser<'a> {
                     Ok(self.parse_assigment_statement(tokens)?)
                 } else {
                     let expression = self.parse_expression(tokens)?;
-                    Ok(Box::new(ast::ExpressionStatement::new(expression)))
+                    Ok(Statement::ExpressionStatement(Box::new(expression)))
                 }
-
-
             }
             Some(lex::Token::If) => self.parse_if_statement(tokens),
             Some(lex::Token::While) => self.parse_while_loop(tokens),
@@ -76,7 +74,7 @@ impl<'a> Parser<'a> {
     fn parse_while_loop(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
-    ) -> Result<Box<dyn ast::Statement>, String> {
+    ) -> Result<Statement, String> {
         tokens.next();
 
         let loop_condition = self.parse_expression(tokens)?;
@@ -85,14 +83,23 @@ impl<'a> Parser<'a> {
 
         let loop_block = self.parse_block_until(tokens, &[lex::Token::End])?;
 
-        Ok(Box::new(WhileLoop::new(loop_condition, loop_block)))
+        self.expect(tokens, lex::Token::End)?;
+
+        let statement = Ok(Statement::WhileLoop {
+            loop_condition: Box::new(loop_condition),
+            code_block: loop_block,
+        });
+        statement
     }
 
-    fn parse_for_loop(&mut self, tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<Box<dyn Statement>, String> {
+    fn parse_for_loop(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Statement, String> {
         tokens.next();
 
         let loop_variable = self.parse_identifier(tokens)?;
-        
+
         self.expect(tokens, lex::Token::Assigment)?;
 
         let start_value = self.parse_expression(tokens)?;
@@ -100,7 +107,7 @@ impl<'a> Parser<'a> {
 
         let end_value = self.parse_expression(tokens)?;
 
-        let mut step_value: Box<dyn Expression> = Box::new(ast::NumberLiteral::new(1.0));
+        let mut step_value: Expression = Expression::NumberLiteral(1.0);
 
         if tokens.peek() == Some(&lex::Token::Comma) {
             tokens.next();
@@ -111,13 +118,19 @@ impl<'a> Parser<'a> {
 
         let loop_block = self.parse_block_until(tokens, &[lex::Token::End])?;
 
-        Ok(Box::new(ast::ForLoop::new(loop_variable, start_value, end_value, step_value, loop_block)))
+        Ok(Statement::ForLoop {
+            iterator_identifier: loop_variable,
+            starting_value: Box::new(start_value),
+            ending_value: Box::new(end_value),
+            step_value: Box::new(step_value),
+            code_block: loop_block,
+        })
     }
 
     fn parse_if_statement(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
-    ) -> Result<Box<dyn ast::Statement>, String> {
+    ) -> Result<Statement, String> {
         tokens.next();
 
         let condition = self.parse_expression(tokens)?;
@@ -134,7 +147,7 @@ impl<'a> Parser<'a> {
         while let Some(lex::Token::ElseIf) = tokens.peek() {
             tokens.next();
 
-            let condition = self.parse_expression(tokens)?;
+            let condition = Box::new(self.parse_expression(tokens)?);
 
             self.expect(tokens, lex::Token::Then)?;
 
@@ -156,19 +169,19 @@ impl<'a> Parser<'a> {
 
         self.expect(tokens, lex::Token::End)?;
 
-        Ok(Box::new(IfStatement::new(
-            condition,
-            main_block,
-            elseif_statements,
-            else_block,
-        )))
+        Ok(Statement::IfStatement {
+            basic_condition: Box::new(condition),
+            code_block: main_block,
+            elseif_statements: elseif_statements,
+            else_block: else_block,
+        })
     }
 
     fn parse_block_until(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
         end_tokens: &[lex::Token],
-    ) -> Result<ast::Block, String> {
+    ) -> Result<Vec<Statement>, String> {
         let mut statements = Vec::new();
 
         while let Some(token) = tokens.peek() {
@@ -180,13 +193,13 @@ impl<'a> Parser<'a> {
             statements.push(self.parse_single_statement(tokens)?);
         }
 
-        Ok(ast::Block::new(statements))
+        Ok(statements)
     }
 
     fn parse_local_variable_declaration(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
-    ) -> Result<Box<dyn ast::Statement>, String> {
+    ) -> Result<Statement, String> {
         tokens.next();
 
         let local_variable_identifier = self.parse_identifier(tokens)?;
@@ -195,10 +208,10 @@ impl<'a> Parser<'a> {
 
         let expression = self.parse_expression(tokens)?;
 
-        Ok(Box::new(LocalVariableDeclaration::new(
+        Ok(Statement::LocalVariableDeclaration(
             local_variable_identifier,
-            expression,
-        )))
+            Box::new(expression),
+        ))
     }
 
     fn parse_identifier(
@@ -215,7 +228,7 @@ impl<'a> Parser<'a> {
     fn parse_expression(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
-    ) -> Result<Box<dyn ast::Expression>, String> {
+    ) -> Result<Expression, String> {
         create_binary_expression!(
             self,
             tokens,
@@ -234,7 +247,7 @@ impl<'a> Parser<'a> {
     fn parse_2_level_expression(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
-    ) -> Result<Box<dyn ast::Expression>, String> {
+    ) -> Result<Expression, String> {
         create_binary_expression!(
             self,
             tokens,
@@ -246,7 +259,7 @@ impl<'a> Parser<'a> {
     fn parse_3_level_expression(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
-    ) -> Result<Box<dyn ast::Expression>, String> {
+    ) -> Result<Expression, String> {
         create_binary_expression!(
             self,
             tokens,
@@ -258,7 +271,7 @@ impl<'a> Parser<'a> {
     fn parse_4_level_expression(
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
-    ) -> Result<Box<dyn ast::Expression>, String> {
+    ) -> Result<Expression, String> {
         if let Some(token) = tokens.next() {
             match token {
                 lex::Token::LeftParen => {
@@ -271,7 +284,7 @@ impl<'a> Parser<'a> {
                     }
                 }
                 lex::Token::Literal(LiteralType::Number(number)) => {
-                    Ok(Box::new(ast::NumberLiteral::new(number)))
+                    Ok(Expression::NumberLiteral(number))
                 }
                 lex::Token::Identifier(identifier) => {
                     if tokens.peek() == Some(&lex::Token::LeftParen) {
@@ -295,17 +308,17 @@ impl<'a> Parser<'a> {
 
                         tokens.next();
 
-                        Ok(Box::new(ast::FunctionCall::new(identifier, arguments)))
+                        Ok(Expression::FunctionCall(identifier, arguments))
                     } else {
-                        Ok(Box::new(ast::IdentifierExpression::new(identifier)))
+                        Ok(Expression::IdentifierExpression(identifier))
                     }
                 }
                 lex::Token::Literal(LiteralType::Boolean(value)) => {
-                    Ok(Box::new(ast::BooleanLiteral::new(value)))
+                    Ok(Expression::BooleanLiteral(value))
                 }
-                lex::Token::Literal(LiteralType::Nil) => Ok(Box::new(ast::NilLiteral {})),
+                lex::Token::Literal(LiteralType::Nil) => Ok(Expression::NilLiteral {}),
                 lex::Token::Literal(LiteralType::String(value)) => {
-                    Ok(Box::new(ast::StringLiteral::new(value)))
+                    Ok(Expression::StringLiteral(value))
                 }
                 _ => Err(format!("Unexpected token '{:?}'", token)),
             }
@@ -327,13 +340,19 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_assigment_statement(&mut self, tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<Box<dyn Statement>, String> {
+    fn parse_assigment_statement(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Statement, String> {
         let identifier = self.parse_identifier(tokens)?;
 
         self.expect(tokens, lex::Token::Assigment)?;
 
         let expression = self.parse_expression(tokens)?;
 
-        Ok(Box::new(AssigmentStatement::new(identifier, expression)))
+        Ok(Statement::AssigmentStatement(
+            identifier,
+            Box::new(expression),
+        ))
     }
 }

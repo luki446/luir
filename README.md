@@ -43,9 +43,9 @@ Release v1.0.0 will mark the first stable complete-ish release of Luir. The foll
 - [x] Local variable scoping.
 - [x] While loop
 - [x] For loop.
+- [ ] Function definitions.
 - [ ] Repeat-until loop.
 - [ ] Tables and pseudo-OOP.
-- [ ] Function definitions.
 - [ ] Closures support.
 - [ ] More standard Lua library functions.
 - [ ] REPL mode.

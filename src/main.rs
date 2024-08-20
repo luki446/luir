@@ -6,7 +6,9 @@ mod ast;
 mod lex;
 mod parser;
 
-use ast::{Statement, VirtualMachine};
+mod vm;
+
+use vm::VirtualMachine;
 
 #[derive(Parser, Debug)]
 #[clap(version, author = "Lukasz <luki446@gmail.com> Burchard", about)]
@@ -33,10 +35,10 @@ fn main() {
     };
 
     if options.print_ast {
-        for statement in &ast.statements {
+        for statement in &ast {
             println!("{:#?}", statement);
         }
     } else {
-        ast.execute(&mut global_map).unwrap();
+        global_map.execute(&ast).unwrap();
     }
 }
