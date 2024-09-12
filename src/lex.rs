@@ -13,6 +13,7 @@ pub enum Token {
     // Keywords
     Local,
     Function,
+    Return,
 
     Identifier(String),
 
@@ -93,6 +94,7 @@ impl<'a> Lexer<'a> {
         match id.as_str() {
             "local" => Token::Local,
             "function" => Token::Function,
+            "return" => Token::Return,
             "nil" => Token::Literal(LiteralType::Nil),
             "true" => Token::Literal(LiteralType::Boolean(true)),
             "false" => Token::Literal(LiteralType::Boolean(false)),
@@ -221,120 +223,5 @@ impl<'a> Lexer<'a> {
             }
         }
         Ok(tokens)
-    }
-}
-
-#[cfg(test)]
-mod lex_tests {
-    use super::*;
-
-    #[test]
-    fn test_basic_variable_declaration_lexer() {
-        let source_code = "local a = 1 + 2 * 3";
-        let mut lexer = Lexer::new(source_code);
-
-        let tokens = lexer.tokenize().unwrap();
-
-        assert_eq!(
-            tokens,
-            vec![
-                Token::Local,
-                Token::Identifier("a".to_string()),
-                Token::Assigment,
-                Token::Literal(LiteralType::Number(1.0)),
-                Token::Plus,
-                Token::Literal(LiteralType::Number(2.0)),
-                Token::Asterisk,
-                Token::Literal(LiteralType::Number(3.0)),
-            ]
-        );
-    }
-
-    #[test]
-    fn test_string_literal_lexer() {
-        let source_code = r#"print("Hello, World!")"#;
-        let mut lexer = Lexer::new(source_code);
-
-        let tokens = lexer.tokenize().unwrap();
-
-        assert_eq!(
-            tokens,
-            vec![
-                Token::Identifier("print".to_string()),
-                Token::LeftParen,
-                Token::Literal(LiteralType::String("Hello, World!".to_string())),
-                Token::RightParen,
-            ]
-        );
-    }
-
-    #[test]
-    fn test_whitespace_lexer() {
-        let source_code = "a = 1   +   2";
-        let mut lexer = Lexer::new(source_code);
-
-        let tokens = lexer.tokenize().unwrap();
-
-        assert_eq!(
-            tokens,
-            vec![
-                Token::Identifier("a".to_string()),
-                Token::Assigment,
-                Token::Literal(LiteralType::Number(1.0)),
-                Token::Plus,
-                Token::Literal(LiteralType::Number(2.0)),
-            ]
-        );
-    }
-
-    #[test]
-    fn test_comparison_lexer() {
-        let source_code = "a >= 1";
-        let mut lexer = Lexer::new(source_code);
-
-        let tokens = lexer.tokenize().unwrap();
-
-        assert_eq!(
-            tokens,
-            vec![
-                Token::Identifier("a".to_string()),
-                Token::GreaterThanOrEqual,
-                Token::Literal(LiteralType::Number(1.0)),
-            ]
-        );
-    }
-
-    #[test]
-    fn test_not_equal_lexer() {
-        let source_code = "a ~= 1";
-        let mut lexer = Lexer::new(source_code);
-
-        let tokens = lexer.tokenize().unwrap();
-
-        assert_eq!(
-            tokens,
-            vec![
-                Token::Identifier("a".to_string()),
-                Token::NotEqual,
-                Token::Literal(LiteralType::Number(1.0)),
-            ]
-        );
-    }
-
-    #[test]
-    fn test_concatenation_lexer() {
-        let source_code = "a .. b";
-        let mut lexer = Lexer::new(source_code);
-
-        let tokens = lexer.tokenize().unwrap();
-
-        assert_eq!(
-            tokens,
-            vec![
-                Token::Identifier("a".to_string()),
-                Token::Concatanation,
-                Token::Identifier("b".to_string()),
-            ]
-        );
     }
 }

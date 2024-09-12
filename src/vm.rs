@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 type ValueMap = HashMap<String, EvalValue>;
 
+#[derive(Debug)]
 pub struct VirtualMachine {
     scopes_stack: Vec<ValueMap>,
 }
@@ -64,9 +65,11 @@ impl VirtualMachine {
             .iter_mut()
             .rev()
             .find(|v| v.contains_key(&name));
+
         if target_scope.is_none() {
             target_scope = self.scopes_stack.first_mut()
         }
+        
         target_scope.unwrap().insert(name, value);
     }
 

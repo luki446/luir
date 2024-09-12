@@ -67,6 +67,8 @@ impl<'a> Parser<'a> {
             Some(lex::Token::If) => self.parse_if_statement(tokens),
             Some(lex::Token::While) => self.parse_while_loop(tokens),
             Some(lex::Token::For) => self.parse_for_loop(tokens),
+            Some(lex::Token::Function) => self.parse_function_declaration(tokens),
+            Some(lex::Token::Return) => self.parse_return_statement(tokens),
             _ => Err(format!("Unexpected top-level token '{:?}'", token)),
         }
     }
@@ -116,6 +118,8 @@ impl<'a> Parser<'a> {
         self.expect(tokens, lex::Token::Do)?;
 
         let loop_block = self.parse_block_until(tokens, &[lex::Token::End])?;
+        
+        self.expect(tokens, lex::Token::End)?;
 
         Ok(Statement::ForLoop {
             iterator_identifier: loop_variable,
@@ -185,7 +189,7 @@ impl<'a> Parser<'a> {
 
         while let Some(token) = tokens.peek() {
             if end_tokens.contains(token) {
-                tokens.next();
+                // tokens.next();
                 break;
             }
 
@@ -353,5 +357,45 @@ impl<'a> Parser<'a> {
             identifier,
             Box::new(expression),
         ))
+    }
+    
+    fn parse_function_declaration(&mut self, tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<Statement, String> {
+        tokens.next();
+
+        let function_name = self.parse_identifier(tokens)?;
+
+        self.expect(tokens, lex::Token::LeftParen)?;
+
+        let mut function_arguments = Vec::new();
+
+        while let Ok(identifier) = self.parse_identifier(tokens) {
+            function_arguments.push(identifier);
+
+            if let Some(lex::Token::Comma) = tokens.peek() {
+                tokens.next();
+            } else {
+                break;
+            }
+        }
+
+        self.expect(tokens, lex::Token::RightParen)?;
+
+        let function_body = self.parse_block_until(tokens, &[lex::Token::End])?;
+
+        self.expect(tokens, lex::Token::End)?;
+
+        Ok(Statement::FunctionDeclaration {
+            function_name,
+            function_arguments,
+            function_body,
+        })
+    }
+    
+    fn parse_return_statement(&mut self, tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<Statement, String> {
+        tokens.next();
+
+        let expression = self.parse_expression(tokens)?;
+
+        Ok(Statement::ReturnStatement(Box::new(expression)))
     }
 }

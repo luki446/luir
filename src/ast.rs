@@ -9,6 +9,10 @@ pub enum EvalValue {
     Nil,
 
     NativeFunction(fn(Vec<EvalValue>) -> Result<EvalValue, String>),
+    DeclaredFunction {
+        arguments: Vec<String>,
+        body: Vec<Statement>,
+    },
 }
 impl EvalValue {
     fn is_true(&self) -> bool {
@@ -16,7 +20,7 @@ impl EvalValue {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Expression {
     NumberLiteral(f64),
     BooleanLiteral(bool),
@@ -27,8 +31,40 @@ pub enum Expression {
     FunctionCall(String, Vec<Expression>),
 }
 
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub enum Statement {
+    LocalVariableDeclaration(String, Box<Expression>),
+    AssigmentStatement(String, Box<Expression>),
+
+    WhileLoop {
+        loop_condition: Box<Expression>,
+        code_block: Vec<Statement>,
+    },
+    ForLoop {
+        iterator_identifier: String,
+        starting_value: Box<Expression>,
+        ending_value: Box<Expression>,
+        step_value: Box<Expression>,
+        code_block: Vec<Statement>,
+    },
+    IfStatement {
+        basic_condition: Box<Expression>,
+        code_block: Vec<Statement>,
+        elseif_statements: Vec<(Box<Expression>, Vec<Statement>)>,
+        else_block: Option<Vec<Statement>>,
+    },
+    ExpressionStatement(Box<Expression>),
+    FunctionDeclaration {
+        function_name: String,
+        function_arguments: Vec<String>,
+        function_body: Vec<Statement>,
+    },
+    ReturnStatement(Box<Expression>),
+}
+
 impl Expression {
-    pub fn execute(&self, _g: &mut VirtualMachine) -> Result<EvalValue, String> {
+    fn execute(&self, _g: &mut VirtualMachine) -> Result<EvalValue, String> {
         match &self {
             Expression::NumberLiteral(number) => Ok(EvalValue::Number(*number)),
             Expression::BooleanLiteral(boolean_value) => Ok(EvalValue::Boolean(*boolean_value)),
@@ -83,12 +119,39 @@ impl Expression {
                 }
             }
             Expression::FunctionCall(function_name, function_arguments) => {
+                println!("Function call: {:#?}", &self);
+
                 let mut args: Vec<EvalValue> = Vec::new();
                 for arg in function_arguments {
                     args.push(arg.execute(_g)?);
                 }
                 match _g.lookup_variable(function_name) {
                     Some(EvalValue::NativeFunction(f)) => f(args),
+                    Some(EvalValue::DeclaredFunction{ arguments, body }) => {
+                        _g.enter_scope();
+                        
+                        if arguments.len() != args.len() {
+                            return Err(format!("Expected {} arguments, got {}", arguments.len(), args.len()));
+                        }
+
+                        for (arg_name, arg_value) in arguments.iter().zip(args) {
+                            _g.declare_variable(arg_name.clone(), arg_value);
+                        }
+                        for statement in body {
+                            match statement {
+                                Statement::ReturnStatement(expr) => {
+                                    println!("Returning {:#?}", expr);
+                                    let result = expr.execute(_g)?;
+                                    _g.exit_scope();
+                                    return Ok(result);
+                                },
+                                _ => statement.execute(_g)?,
+                            };
+                        }
+                        _g.exit_scope();
+                        println!("Returning nil");
+                        Ok(EvalValue::Nil)
+                    },
                     _ => Err(format!("Function '{}' not found", function_name)),
                 }
             }
@@ -96,43 +159,18 @@ impl Expression {
     }
 }
 
-#[derive(Debug)]
-pub enum Statement {
-    LocalVariableDeclaration(String, Box<Expression>),
-    AssigmentStatement(String, Box<Expression>),
-
-    WhileLoop {
-        loop_condition: Box<Expression>,
-        code_block: Vec<Statement>,
-    },
-    ForLoop {
-        iterator_identifier: String,
-        starting_value: Box<Expression>,
-        ending_value: Box<Expression>,
-        step_value: Box<Expression>,
-        code_block: Vec<Statement>,
-    },
-    IfStatement {
-        basic_condition: Box<Expression>,
-        code_block: Vec<Statement>,
-        elseif_statements: Vec<(Box<Expression>, Vec<Statement>)>,
-        else_block: Option<Vec<Statement>>,
-    },
-    ExpressionStatement(Box<Expression>),
-}
-
 impl Statement {
-    pub fn execute(&self, _g: &mut VirtualMachine) -> Result<(), String> {
+    pub fn execute(&self, _g: &mut VirtualMachine) -> Result<EvalValue, String> {
         match self {
             Statement::LocalVariableDeclaration(variable_name, expr) => {
                 let value = expr.execute(_g)?;
                 _g.declare_variable(variable_name.clone(), value);
-                Ok(())
+                Ok(EvalValue::Nil)
             }
             Statement::AssigmentStatement(variable_name, expr) => {
                 let value = expr.execute(_g)?;
                 _g.change_or_create_value(variable_name.clone(), value);
-                Ok(())
+                Ok(EvalValue::Nil)
             }
             Statement::WhileLoop {
                 loop_condition,
@@ -147,7 +185,7 @@ impl Statement {
                 }
 
                 _g.exit_scope();
-                Ok(())
+                Ok(EvalValue::Nil)
             }
             Statement::ForLoop {
                 iterator_identifier,
@@ -185,7 +223,7 @@ impl Statement {
                 }
 
                 _g.exit_scope();
-                Ok(())
+                Ok(EvalValue::Nil)
             }
             Statement::IfStatement {
                 basic_condition,
@@ -205,7 +243,7 @@ impl Statement {
                             for statement in block {
                                 statement.execute(_g)?;
                             }
-                            return Ok(());
+                            return Ok(EvalValue::Nil);
                         }
                     }
                     if let Some(block) = else_block {
@@ -216,12 +254,23 @@ impl Statement {
                 }
 
                 _g.exit_scope();
-                Ok(())
+                Ok(EvalValue::Nil)
             }
             Statement::ExpressionStatement(expr) => {
                 expr.execute(_g)?;
-                Ok(())
+                Ok(EvalValue::Nil)
             }
+            Statement::FunctionDeclaration { function_name, function_arguments, function_body } => {
+                _g.declare_variable(
+                    function_name.clone(),
+                    EvalValue::DeclaredFunction {
+                        arguments: function_arguments.clone(),
+                        body: function_body.clone(),
+                    },
+                );
+                Ok(EvalValue::Nil)
+            },
+            Statement::ReturnStatement(expression) => return Ok(expression.execute(_g)?),
         }
     }
 }
