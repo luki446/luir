@@ -1,10 +1,10 @@
 
-function fac(n)
-    if n <= 1 then
+function fib(n)
+    if n < 2 then
         return 1
     else
-        return n * fac(n - 1)
+        return fib(n - 1) + fib(n - 2)
     end
 end
 
-fac(2)
+print(fib(27))

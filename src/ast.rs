@@ -13,6 +13,8 @@ pub enum EvalValue {
         arguments: Vec<String>,
         body: Vec<Statement>,
     },
+
+    Void, // For internal use, the return value of a statement that doesn't return anything
 }
 impl EvalValue {
     fn is_true(&self) -> bool {
@@ -119,8 +121,6 @@ impl Expression {
                 }
             }
             Expression::FunctionCall(function_name, function_arguments) => {
-                println!("Function call: {:#?}", &self);
-
                 let mut args: Vec<EvalValue> = Vec::new();
                 for arg in function_arguments {
                     args.push(arg.execute(_g)?);
@@ -138,18 +138,14 @@ impl Expression {
                             _g.declare_variable(arg_name.clone(), arg_value);
                         }
                         for statement in body {
-                            match statement {
-                                Statement::ReturnStatement(expr) => {
-                                    println!("Returning {:#?}", expr);
-                                    let result = expr.execute(_g)?;
-                                    _g.exit_scope();
-                                    return Ok(result);
-                                },
-                                _ => statement.execute(_g)?,
-                            };
+                            let return_value = statement.execute(_g)?;
+
+                            if return_value != EvalValue::Void {
+                                _g.exit_scope();
+                                return Ok(return_value);
+                            }
                         }
                         _g.exit_scope();
-                        println!("Returning nil");
                         Ok(EvalValue::Nil)
                     },
                     _ => Err(format!("Function '{}' not found", function_name)),
@@ -165,12 +161,12 @@ impl Statement {
             Statement::LocalVariableDeclaration(variable_name, expr) => {
                 let value = expr.execute(_g)?;
                 _g.declare_variable(variable_name.clone(), value);
-                Ok(EvalValue::Nil)
+                Ok(EvalValue::Void)
             }
             Statement::AssigmentStatement(variable_name, expr) => {
                 let value = expr.execute(_g)?;
                 _g.change_or_create_value(variable_name.clone(), value);
-                Ok(EvalValue::Nil)
+                Ok(EvalValue::Void)
             }
             Statement::WhileLoop {
                 loop_condition,
@@ -180,12 +176,17 @@ impl Statement {
 
                 while loop_condition.execute(_g)?.is_true() {
                     for statement in code_block {
-                        statement.execute(_g)?;
-                    }
+                        let return_value = statement.execute(_g)?;
+
+                        if return_value != EvalValue::Void {
+                            _g.exit_scope();
+                            return Ok(return_value);
+                        }
+                    }                    
                 }
 
                 _g.exit_scope();
-                Ok(EvalValue::Nil)
+                Ok(EvalValue::Void)
             }
             Statement::ForLoop {
                 iterator_identifier,
@@ -208,7 +209,12 @@ impl Statement {
                     <= ending_value.execute(_g)?
                 {
                     for statement in code_block {
-                        statement.execute(_g)?;
+                        let return_value = statement.execute(_g)?;
+
+                        if return_value != EvalValue::Void {
+                            _g.exit_scope();
+                            return Ok(return_value);
+                        }
                     }
 
                     let current_value = match _g.lookup_variable(iterator_identifier) {
@@ -223,7 +229,7 @@ impl Statement {
                 }
 
                 _g.exit_scope();
-                Ok(EvalValue::Nil)
+                Ok(EvalValue::Void)
             }
             Statement::IfStatement {
                 basic_condition,
@@ -235,30 +241,45 @@ impl Statement {
 
                 if basic_condition.execute(_g)?.is_true() {
                     for statement in code_block {
-                        statement.execute(_g)?;
+                        let return_value = statement.execute(_g)?;
+
+                        if return_value != EvalValue::Void {
+                            _g.exit_scope();
+                            return Ok(return_value);
+                        }
                     }
                 } else {
                     for (condition, block) in elseif_statements {
                         if condition.execute(_g)?.is_true() {
                             for statement in block {
-                                statement.execute(_g)?;
+                                let return_value = statement.execute(_g)?;
+
+                                if return_value != EvalValue::Void {
+                                    _g.exit_scope();
+                                    return Ok(return_value);
+                                }
                             }
-                            return Ok(EvalValue::Nil);
+                            return Ok(EvalValue::Void);
                         }
                     }
                     if let Some(block) = else_block {
                         for statement in block {
-                            statement.execute(_g)?;
+                            let return_value = statement.execute(_g)?;
+
+                            if return_value != EvalValue::Void {
+                                _g.exit_scope();
+                                return Ok(return_value);
+                            }
                         }
                     }
                 }
 
                 _g.exit_scope();
-                Ok(EvalValue::Nil)
+                Ok(EvalValue::Void)
             }
             Statement::ExpressionStatement(expr) => {
                 expr.execute(_g)?;
-                Ok(EvalValue::Nil)
+                Ok(EvalValue::Void)
             }
             Statement::FunctionDeclaration { function_name, function_arguments, function_body } => {
                 _g.declare_variable(
@@ -268,7 +289,7 @@ impl Statement {
                         body: function_body.clone(),
                     },
                 );
-                Ok(EvalValue::Nil)
+                Ok(EvalValue::Void)
             },
             Statement::ReturnStatement(expression) => return Ok(expression.execute(_g)?),
         }

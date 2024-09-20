@@ -43,7 +43,7 @@ Release v1.0.0 will mark the first stable complete-ish release of Luir. The foll
 - [x] Local variable scoping.
 - [x] While loop
 - [x] For loop.
-- [ ] Function definitions.
+- [x] Function definitions.
 - [ ] Comments.
 - [ ] Repeat-until loop.
 - [ ] Tables and pseudo-OOP.
