@@ -1,0 +1,73 @@
+name: Release workflow
+
+on:
+    push:
+        tags:
+            - 'v*'
+
+jobs:
+    build:
+        name: Build release
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                os: [ubuntu-latest, windows-latest, macos-latest]
+                include:
+                    - os: ubuntu-latest
+                      target: x86_64-unknown-linux-gnu
+                    - os: windows-latest
+                      target: x86_64-pc-windows-msvc
+                    - os: macos-latest
+                      target: x86_64-apple-darwin
+        steps:
+            - name: Checkout source code
+              uses: actions/checkout@v4
+
+            - name: Set up Rust
+              uses: actions-rs/toolchain@v1
+              with:
+                toolchain: stable
+                target: ${{ matrix.target }}
+            
+            - name: Extract version from tag
+              id: extract_version
+              run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+            
+            - name: Build the project
+              uses: actions-rs/cargo@v1
+              with:
+                command: build
+                args: --release --target ${{ matrix.target }}
+            
+            - name: Archive build artifacts
+              if: matrix.os == 'windows-latest'
+              run: 7z a -tzip luir-${{ env.VERSION }}-${{ matrix.target }}.zip target/${{ matrix.target }}/release/luir.exe LICENSE
+            
+            - name: Archive build artifacts
+              if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+              run: tar -czf luir-${{ env.VERSION }}-${{ matrix.target }}.tar.gz target/${{ matrix.target }}/release/luir LICENSE
+            
+            - name: Upload build artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                name: ${{ matrix.os }}-build
+                path: luir-*-${{ matrix.target }}.*
+    
+    release:
+        needs: build
+        runs-on: ubuntu-latest
+        steps:
+            - name: Download build artifacts
+              uses: actions/download-artifact@v4
+            - name: Archive source code
+              run: git archive -o luir-${{ env.VERSION }}-source.tar.gz HEAD
+            - name: Create release
+              uses: softprops/action-gh-release@v1
+              with:
+                files: |
+                    luir-*.tar.gz
+                    luir-*.zip
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+

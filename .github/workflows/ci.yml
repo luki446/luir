@@ -1,4 +1,4 @@
-name: Basic CI workflow
+name: Continuous Integration workflow
 
 on:
     push:
@@ -18,6 +18,7 @@ jobs:
             - uses: actions-rust-lang/setup-rust-toolchain@v1
             - run: cargo build
     test:
+        needs: build
         name: cargo test
         runs-on: ubuntu-latest
     
@@ -26,6 +27,7 @@ jobs:
             - uses: actions-rust-lang/setup-rust-toolchain@v1
             - run: cargo test --all-features
     formatting:
+        needs: test
         name: cargo fmt
         runs-on: ubuntu-latest
         steps:
