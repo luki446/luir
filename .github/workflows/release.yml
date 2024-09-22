@@ -29,10 +29,6 @@ jobs:
                 toolchain: stable
                 target: ${{ matrix.target }}
             
-            - name: Extract version from tag
-              id: extract_version
-              run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
-            
             - name: Build the project
               uses: actions-rs/cargo@v1
               with:
@@ -41,11 +37,11 @@ jobs:
             
             - name: Archive build artifacts
               if: matrix.os == 'windows-latest'
-              run: 7z a -tzip luir-${{ env.VERSION }}-${{ matrix.target }}.zip target/${{ matrix.target }}/release/luir.exe LICENSE
+              run: 7z a -tzip luir-${{ github.ref_name }}-${{ matrix.target }}.zip target/${{ matrix.target }}/release/luir.exe LICENSE
             
             - name: Archive build artifacts
               if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
-              run: tar -czf luir-${{ env.VERSION }}-${{ matrix.target }}.tar.gz target/${{ matrix.target }}/release/luir LICENSE
+              run: tar -czf luir-${{ github.ref_name }}-${{ matrix.target }}.tar.gz target/${{ matrix.target }}/release/luir LICENSE
             
             - name: Upload build artifacts
               uses: actions/upload-artifact@v4
@@ -54,13 +50,16 @@ jobs:
                 path: luir-*-${{ matrix.target }}.*
     
     release:
+        name: Upload released application
         needs: build
         runs-on: ubuntu-latest
         steps:
             - name: Download build artifacts
               uses: actions/download-artifact@v4
+            - name: Checkout source code
+              uses: actions/checkout@v4
             - name: Archive source code
-              run: git archive -o luir-${{ env.VERSION }}-source.tar.gz HEAD
+              run: git archive -o luir-${{ github.ref_name }}-source.tar.gz HEAD
             - name: Create release
               uses: softprops/action-gh-release@v1
               with:
