@@ -33,7 +33,6 @@ pub enum Expression {
     FunctionCall(String, Vec<Expression>),
 }
 
-
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Statement {
     LocalVariableDeclaration(String, Box<Expression>),
@@ -127,11 +126,15 @@ impl Expression {
                 }
                 match _g.lookup_variable(function_name) {
                     Some(EvalValue::NativeFunction(f)) => f(args),
-                    Some(EvalValue::DeclaredFunction{ arguments, body }) => {
+                    Some(EvalValue::DeclaredFunction { arguments, body }) => {
                         _g.enter_scope();
-                        
+
                         if arguments.len() != args.len() {
-                            return Err(format!("Expected {} arguments, got {}", arguments.len(), args.len()));
+                            return Err(format!(
+                                "Expected {} arguments, got {}",
+                                arguments.len(),
+                                args.len()
+                            ));
                         }
 
                         for (arg_name, arg_value) in arguments.iter().zip(args) {
@@ -147,7 +150,7 @@ impl Expression {
                         }
                         _g.exit_scope();
                         Ok(EvalValue::Nil)
-                    },
+                    }
                     _ => Err(format!("Function '{}' not found", function_name)),
                 }
             }
@@ -182,7 +185,7 @@ impl Statement {
                             _g.exit_scope();
                             return Ok(return_value);
                         }
-                    }                    
+                    }
                 }
 
                 _g.exit_scope();
@@ -281,7 +284,11 @@ impl Statement {
                 expr.execute(_g)?;
                 Ok(EvalValue::Void)
             }
-            Statement::FunctionDeclaration { function_name, function_arguments, function_body } => {
+            Statement::FunctionDeclaration {
+                function_name,
+                function_arguments,
+                function_body,
+            } => {
                 _g.declare_variable(
                     function_name.clone(),
                     EvalValue::DeclaredFunction {
@@ -290,7 +297,7 @@ impl Statement {
                     },
                 );
                 Ok(EvalValue::Void)
-            },
+            }
             Statement::ReturnStatement(expression) => return Ok(expression.execute(_g)?),
         }
     }

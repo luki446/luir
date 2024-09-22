@@ -118,7 +118,7 @@ impl<'a> Parser<'a> {
         self.expect(tokens, lex::Token::Do)?;
 
         let loop_block = self.parse_block_until(tokens, &[lex::Token::End])?;
-        
+
         self.expect(tokens, lex::Token::End)?;
 
         Ok(Statement::ForLoop {
@@ -358,8 +358,11 @@ impl<'a> Parser<'a> {
             Box::new(expression),
         ))
     }
-    
-    fn parse_function_declaration(&mut self, tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<Statement, String> {
+
+    fn parse_function_declaration(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Statement, String> {
         tokens.next();
 
         let function_name = self.parse_identifier(tokens)?;
@@ -390,8 +393,11 @@ impl<'a> Parser<'a> {
             function_body,
         })
     }
-    
-    fn parse_return_statement(&mut self, tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>) -> Result<Statement, String> {
+
+    fn parse_return_statement(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Statement, String> {
         tokens.next();
 
         let expression = self.parse_expression(tokens)?;

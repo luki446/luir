@@ -69,7 +69,7 @@ impl VirtualMachine {
         if target_scope.is_none() {
             target_scope = self.scopes_stack.first_mut()
         }
-        
+
         target_scope.unwrap().insert(name, value);
     }
 
