@@ -37,11 +37,21 @@ jobs:
             
             - name: Archive build artifacts
               if: matrix.os == 'windows-latest'
-              run: 7z a -tzip luir-${{ github.ref_name }}-${{ matrix.target }}.zip target/${{ matrix.target }}/release/luir.exe LICENSE
+              run: |
+                7z a -tzip luir-${{ github.ref_name }}-${{ matrix.target }}.zip LICENSE
+                cd target/${{ matrix.target }}/release
+                7z a -tzip ../../../luir-${{ github.ref_name }}-${{ matrix.target }}.zip luir.exe
             
             - name: Archive build artifacts
-              if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
-              run: tar -czf luir-${{ github.ref_name }}-${{ matrix.target }}.tar.gz target/${{ matrix.target }}/release/luir LICENSE
+              if: matrix.os == 'ubuntu-latest'
+              run: tar -czf luir-${{ github.ref_name }}-${{ matrix.target }}.tar.gz --transform 's/.*\///' target/${{ matrix.target }}/release/luir LICENSE
+            
+            - name: Archive build artifacts
+              if: matrix.os == 'macos-latest'
+              run: |
+                7z a -tzip luir-${{ github.ref_name }}-${{ matrix.target }}.zip LICENSE
+                cd target/${{ matrix.target }}/release
+                7z a -tzip ../../../luir-${{ github.ref_name }}-${{ matrix.target }}.zip luir
             
             - name: Upload build artifacts
               uses: actions/upload-artifact@v4
@@ -57,20 +67,14 @@ jobs:
             - name: Download build artifacts
               uses: actions/download-artifact@v4
               with:
-                path: builds
                 pattern: build-*
                 merge-multiple: true
-            - run: ls -R builds
-            - name: Checkout source code
-              uses: actions/checkout@v4
-            - name: Archive source code
-              run: git archive -o builds/luir-${{ github.ref_name }}-source.tar.gz HEAD
             - name: Create release
               uses: softprops/action-gh-release@v1
               with:
                 files: |
-                    builds/luir-*.tar.gz
-                    builds/luir-*.zip
+                    luir-*.tar.gz
+                    luir-*.zip
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
