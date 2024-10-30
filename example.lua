@@ -1,10 +1,10 @@
 
-function fib(n)
+function Fib(n)
     if n < 2 then
         return 1
     else
-        return fib(n - 1) + fib(n - 2)
+        return Fib(n - 1) + Fib(n - 2)
     end
 end
 
-print(fib(27))
+print(Fib(25))
