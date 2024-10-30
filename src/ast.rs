@@ -18,7 +18,7 @@ pub enum EvalValue {
 }
 impl EvalValue {
     fn is_true(&self) -> bool {
-        matches!(self, EvalValue::Nil | EvalValue::Boolean(true))
+        !matches!(self, EvalValue::Nil | EvalValue::Boolean(false))
     }
 }
 
