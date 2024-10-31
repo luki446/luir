@@ -69,6 +69,7 @@ impl<'a> Parser<'a> {
             Some(lex::Token::For) => self.parse_for_loop(tokens),
             Some(lex::Token::Function) => self.parse_function_declaration(tokens),
             Some(lex::Token::Return) => self.parse_return_statement(tokens),
+            Some(lex::Token::Repeat) => self.parse_repeat_statement(tokens),
             _ => Err(format!("Unexpected top-level token '{:?}'", token)),
         }
     }
@@ -403,5 +404,23 @@ impl<'a> Parser<'a> {
         let expression = self.parse_expression(tokens)?;
 
         Ok(Statement::ReturnStatement(Box::new(expression)))
+    }
+
+    fn parse_repeat_statement(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Statement, String> {
+        tokens.next();
+
+        let code_block = self.parse_block_until(tokens, &[lex::Token::Until])?;
+
+        self.expect(tokens, lex::Token::Until)?;
+
+        let loop_condition = Box::new(self.parse_expression(tokens)?);
+
+        Ok(Statement::RepeatUntilLoop {
+            code_block,
+            loop_condition,
+        })
     }
 }

@@ -49,6 +49,9 @@ pub enum Token {
     While,
     For,
     Do,
+
+    Repeat,
+    Until,
 }
 
 pub struct Lexer<'a> {
@@ -106,6 +109,8 @@ impl<'a> Lexer<'a> {
             "while" => Token::While,
             "for" => Token::For,
             "do" => Token::Do,
+            "repeat" => Token::Repeat,
+            "until" => Token::Until,
             _ => Token::Identifier(id),
         }
     }

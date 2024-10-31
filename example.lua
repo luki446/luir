@@ -9,3 +9,10 @@ end
 
 -- example comment
 print(Fib(25))
+
+num = 10
+
+repeat
+  print("Hello", num)
+  num = num - 1
+until num < 0

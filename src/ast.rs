@@ -49,6 +49,10 @@ pub enum Statement {
         step_value: Box<Expression>,
         code_block: Vec<Statement>,
     },
+    RepeatUntilLoop {
+        code_block: Vec<Statement>,
+        loop_condition: Box<Expression>,
+    },
     IfStatement {
         basic_condition: Box<Expression>,
         code_block: Vec<Statement>,
@@ -298,7 +302,31 @@ impl Statement {
                 );
                 Ok(EvalValue::Void)
             }
-            Statement::ReturnStatement(expression) => return Ok(expression.execute(_g)?),
+            Statement::ReturnStatement(expression) => Ok(expression.execute(_g)?),
+            Statement::RepeatUntilLoop {
+                code_block,
+                loop_condition,
+            } => {
+                _g.enter_scope();
+
+                loop {
+                    for statement in code_block {
+                        let return_value = statement.execute(_g)?;
+
+                        if return_value != EvalValue::Void {
+                            _g.exit_scope();
+                            return Ok(return_value);
+                        }
+                    }
+
+                    if loop_condition.execute(_g)?.is_true() {
+                        break;
+                    }
+                }
+
+                _g.exit_scope();
+                Ok(EvalValue::Void)
+            }
         }
     }
 }
