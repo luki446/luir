@@ -127,7 +127,12 @@ impl<'a> Lexer<'a> {
                     self.advance();
                 }
                 '-' => {
-                    tokens.push(Token::Minus);
+                    if Some('-') == self.input.clone().next() {
+                        self.consume_while(|c| c != '\n');
+                    } else {
+                        tokens.push(Token::Minus);
+                    }
+
                     self.advance();
                 }
                 '*' => {
