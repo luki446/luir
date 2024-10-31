@@ -44,7 +44,7 @@ Release v1.0.0 will mark the first stable complete-ish release of Luir. The foll
 - [x] While loop
 - [x] For loop.
 - [x] Function definitions.
-- [ ] Comments.
+- [x] Comments.
 - [ ] Repeat-until loop.
 - [ ] Tables and pseudo-OOP.
 - [ ] Closures support.
