@@ -24,7 +24,7 @@ cargo build --release
 
 3. Run the interpreter on example Lua scripts:
 ```bash
-cargo run --release -- ./example.lua
+cargo run --release -- ./examples/fib.lua
 ```
 
 4. Install the interpreter locally as drop-in replacement for `lua`:
