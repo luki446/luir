@@ -27,6 +27,8 @@ pub enum Token {
     Slash,
     LeftParen,
     RightParen,
+    LeftBracket,
+    RightBracket,
     Assigment,
     Dot,
     Comma,
@@ -60,7 +62,7 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> Lexer {
+    pub fn new(input: &'a str) -> Lexer<'a> {
         let mut chars = input.chars();
         Lexer {
             current: chars.next(),
@@ -154,6 +156,15 @@ impl<'a> Lexer<'a> {
                 }
                 ')' => {
                     tokens.push(Token::RightParen);
+                    self.advance();
+                }
+                '{' => {
+                    tokens.push(Token::LeftBracket);
+                    self.advance();
+
+                }
+                '}' => {
+                    tokens.push(Token::RightBracket);
                     self.advance();
                 }
                 '<' => {
