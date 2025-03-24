@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::{
     ast::{Expression, Statement},
     lex::{self, Lexer, LiteralType},
@@ -287,6 +289,15 @@ impl<'a> Parser<'a> {
                         Err("Expected ')'".to_string())
                     }
                 }
+                lex::Token::LeftBracket => {
+                    let table_literal = self.parse_table(tokens)?;
+
+                    if let Some(lex::Token::RightBracket) = tokens.next() {
+                        Ok(table_literal)
+                    } else {
+                        Err("Expected '}'".to_string())
+                    }
+                }
                 lex::Token::Literal(LiteralType::Number(number)) => {
                     Ok(Expression::NumberLiteral(number))
                 }
@@ -422,5 +433,17 @@ impl<'a> Parser<'a> {
             code_block,
             loop_condition,
         })
+    }
+
+    fn parse_table(
+        &mut self,
+        tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
+    ) -> Result<Expression, String> {
+        tokens.next();
+
+        // while tokens.peek() != Some(&lex::Token::RightBracket) {
+        //      tokens.next()
+        // }
+        unimplemented!();
     }
 }

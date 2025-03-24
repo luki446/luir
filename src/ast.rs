@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::vm::VirtualMachine;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -27,6 +29,7 @@ pub enum Expression {
     NumberLiteral(f64),
     BooleanLiteral(bool),
     StringLiteral(String),
+    TableLiteral(BTreeMap<Expression, Expression>),
     NilLiteral,
     IdentifierExpression(String),
     BinaryExpression(Box<Expression>, String, Box<Expression>),
@@ -158,6 +161,7 @@ impl Expression {
                     _ => Err(format!("Function '{}' not found", function_name)),
                 }
             }
+            Expression::TableLiteral(btree_map) => todo!(),
         }
     }
 }

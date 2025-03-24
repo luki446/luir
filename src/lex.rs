@@ -29,6 +29,8 @@ pub enum Token {
     RightParen,
     LeftBracket,
     RightBracket,
+    LeftSquareBracket,
+    RightSquareBracket,
     Assigment,
     Dot,
     Comma,
@@ -161,10 +163,17 @@ impl<'a> Lexer<'a> {
                 '{' => {
                     tokens.push(Token::LeftBracket);
                     self.advance();
-
                 }
                 '}' => {
                     tokens.push(Token::RightBracket);
+                    self.advance();
+                }
+                '[' => {
+                    tokens.push(Token::LeftSquareBracket);
+                    self.advance();
+                }
+                ']' => {
+                    tokens.push(Token::RightSquareBracket);
                     self.advance();
                 }
                 '<' => {
