@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{cmp::Ordering, collections::BTreeMap};
 
 use crate::vm::VirtualMachine;
 
@@ -24,7 +24,7 @@ impl EvalValue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     NumberLiteral(f64),
     BooleanLiteral(bool),
@@ -34,7 +34,7 @@ pub enum Expression {
     IdentifierExpression(String),
     BinaryExpression(Box<Expression>, String, Box<Expression>),
     FunctionCall(String, Vec<Expression>),
-}
+} 
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Statement {
@@ -163,6 +163,98 @@ impl Expression {
             }
             Expression::TableLiteral(btree_map) => todo!(),
         }
+    }
+}
+
+impl PartialEq for Expression {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            // Compare NumberLiteral
+            (Expression::NumberLiteral(l), Expression::NumberLiteral(r)) => l == r,
+            // Compare BooleanLiteral
+            (Expression::BooleanLiteral(l), Expression::BooleanLiteral(r)) => l == r,
+            // Compare StringLiteral
+            (Expression::StringLiteral(l), Expression::StringLiteral(r)) => l == r,
+            // Compare NilLiteral
+            (Expression::NilLiteral, Expression::NilLiteral) => true,
+            // Compare IdentifierExpression
+            (Expression::IdentifierExpression(l), Expression::IdentifierExpression(r)) => l == r,
+            // Compare TableLiteral
+            (Expression::TableLiteral(l), Expression::TableLiteral(r)) => {
+                if l.len() != r.len() {
+                    return false;
+                }
+                for ((kl, vr), (kr, vl)) in std::iter::zip(l.iter(), r.iter()) {
+                    if kl != kr || vr != vl {
+                        return false;
+                    }
+                }
+                true
+            },
+            // Compare BinaryExpression
+            (Expression::BinaryExpression(l_l, l_op, l_r), Expression::BinaryExpression(r_l, r_op, r_r)) => {
+                l_l == r_l && l_op == r_op && l_r == r_r
+            },
+            // Compare FunctionCall
+            (Expression::FunctionCall(l_name, l_args), Expression::FunctionCall(r_name, r_args)) => {
+                l_name == r_name && l_args == r_args
+            },
+
+            // Different types are not equal
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Expression {}
+
+impl PartialOrd for Expression {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            // Compare NumberLiteral
+            (Expression::NumberLiteral(l), Expression::NumberLiteral(r)) => l.partial_cmp(r),
+            // Compare BooleanLiteral
+            (Expression::BooleanLiteral(l), Expression::BooleanLiteral(r)) => l.partial_cmp(r),
+            // Compare StringLiteral
+            (Expression::StringLiteral(l), Expression::StringLiteral(r)) => l.partial_cmp(r),
+            // Compare NilLiteral
+            (Expression::NilLiteral, Expression::NilLiteral) => Some(Ordering::Equal),
+            // Compare IdentifierExpression
+            (Expression::IdentifierExpression(l), Expression::IdentifierExpression(r)) => l.partial_cmp(r),
+            // Compare TableLiteral
+            (Expression::TableLiteral(l), Expression::TableLiteral(r)) => {
+                if let Some(ord) = l.keys().partial_cmp(r.keys()) {
+                    Some(ord.then_with(|| match ord {
+                        Ordering::Equal => l.values().partial_cmp(r.values()).unwrap(),
+                        _ => ord,
+                    }))
+                } else {
+                    None
+                }
+            },
+            // Compare BinaryExpression
+            (Expression::BinaryExpression(l, _, r), Expression::BinaryExpression(ll, _, rr)) => {
+                if let Some(ord) = l.partial_cmp(ll) {
+                    Some(ord.then_with(|| match ord {
+                        Ordering::Equal => r.partial_cmp(rr).unwrap(),
+                        _ => ord,
+                    }))
+                } else {
+                    None
+                }
+            },
+            // Compare FunctionCall
+            (Expression::FunctionCall(l, _), Expression::FunctionCall(r, _)) => l.partial_cmp(r),
+
+            // Different types are incomparable
+            _ => None,
+        }
+    }
+}
+
+impl Ord for Expression {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Ordering::Equal)
     }
 }
 

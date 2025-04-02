@@ -441,9 +441,25 @@ impl<'a> Parser<'a> {
     ) -> Result<Expression, String> {
         tokens.next();
 
-        // while tokens.peek() != Some(&lex::Token::RightBracket) {
-        //      tokens.next()
-        // }
-        unimplemented!();
+        let mut table_structure = BTreeMap::new();
+        let mut in_table_index = 1;
+
+        while let Some(token) = tokens.peek() {
+            match *token {
+                lex::Token::RightBracket => break,
+                lex::Token::Comma => {
+                    tokens.next();
+                } // Skip comma
+                _ => {
+                    let element = self.parse_expression(tokens)?;
+                    table_structure.insert(Expression::NumberLiteral(in_table_index as f64), element);
+                    in_table_index += 1;
+                }
+            }
+        }
+
+        self.expect(tokens, lex::Token::RightBracket)?;
+
+        Ok(Expression::TableLiteral(table_structure))
     }
 }
