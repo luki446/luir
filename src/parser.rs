@@ -452,7 +452,8 @@ impl<'a> Parser<'a> {
                 } // Skip comma
                 _ => {
                     let element = self.parse_expression(tokens)?;
-                    table_structure.insert(Expression::NumberLiteral(in_table_index as f64), element);
+                    table_structure
+                        .insert(Expression::NumberLiteral(in_table_index as f64), element);
                     in_table_index += 1;
                 }
             }

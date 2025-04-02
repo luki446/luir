@@ -34,7 +34,7 @@ pub enum Expression {
     IdentifierExpression(String),
     BinaryExpression(Box<Expression>, String, Box<Expression>),
     FunctionCall(String, Vec<Expression>),
-} 
+}
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Statement {
@@ -190,15 +190,17 @@ impl PartialEq for Expression {
                     }
                 }
                 true
-            },
+            }
             // Compare BinaryExpression
-            (Expression::BinaryExpression(l_l, l_op, l_r), Expression::BinaryExpression(r_l, r_op, r_r)) => {
-                l_l == r_l && l_op == r_op && l_r == r_r
-            },
+            (
+                Expression::BinaryExpression(l_l, l_op, l_r),
+                Expression::BinaryExpression(r_l, r_op, r_r),
+            ) => l_l == r_l && l_op == r_op && l_r == r_r,
             // Compare FunctionCall
-            (Expression::FunctionCall(l_name, l_args), Expression::FunctionCall(r_name, r_args)) => {
-                l_name == r_name && l_args == r_args
-            },
+            (
+                Expression::FunctionCall(l_name, l_args),
+                Expression::FunctionCall(r_name, r_args),
+            ) => l_name == r_name && l_args == r_args,
 
             // Different types are not equal
             _ => false,
@@ -220,7 +222,9 @@ impl PartialOrd for Expression {
             // Compare NilLiteral
             (Expression::NilLiteral, Expression::NilLiteral) => Some(Ordering::Equal),
             // Compare IdentifierExpression
-            (Expression::IdentifierExpression(l), Expression::IdentifierExpression(r)) => l.partial_cmp(r),
+            (Expression::IdentifierExpression(l), Expression::IdentifierExpression(r)) => {
+                l.partial_cmp(r)
+            }
             // Compare TableLiteral
             (Expression::TableLiteral(l), Expression::TableLiteral(r)) => {
                 if let Some(ord) = l.keys().partial_cmp(r.keys()) {
@@ -231,7 +235,7 @@ impl PartialOrd for Expression {
                 } else {
                     None
                 }
-            },
+            }
             // Compare BinaryExpression
             (Expression::BinaryExpression(l, _, r), Expression::BinaryExpression(ll, _, rr)) => {
                 if let Some(ord) = l.partial_cmp(ll) {
@@ -242,7 +246,7 @@ impl PartialOrd for Expression {
                 } else {
                     None
                 }
-            },
+            }
             // Compare FunctionCall
             (Expression::FunctionCall(l, _), Expression::FunctionCall(r, _)) => l.partial_cmp(r),
 
