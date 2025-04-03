@@ -446,7 +446,9 @@ impl<'a> Parser<'a> {
 
         while let Some(token) = tokens.peek() {
             match *token {
-                lex::Token::RightBracket => break,
+                lex::Token::RightBracket => {
+                    break;
+                }
                 lex::Token::Comma => {
                     tokens.next();
                 } // Skip comma
@@ -458,8 +460,6 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-
-        self.expect(tokens, lex::Token::RightBracket)?;
 
         Ok(Expression::TableLiteral(table_structure))
     }

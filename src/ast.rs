@@ -15,6 +15,7 @@ pub enum EvalValue {
         arguments: Vec<String>,
         body: Vec<Statement>,
     },
+    Table(BTreeMap<EvalValue, EvalValue>),
 
     Void, // For internal use, the return value of a statement that doesn't return anything
 }
@@ -23,6 +24,14 @@ impl EvalValue {
         !matches!(self, EvalValue::Nil | EvalValue::Boolean(false))
     }
 }
+
+impl Ord for EvalValue {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+    }
+}
+
+impl Eq for EvalValue {}
 
 #[derive(Debug, Clone)]
 pub enum Expression {
@@ -161,7 +170,13 @@ impl Expression {
                     _ => Err(format!("Function '{}' not found", function_name)),
                 }
             }
-            Expression::TableLiteral(btree_map) => todo!(),
+            Expression::TableLiteral(btree_map) => {
+                let mut table = BTreeMap::new();
+                for (key, value) in btree_map {
+                    table.insert(key.execute(_g)?, value.execute(_g)?);
+                }
+                Ok(EvalValue::Table(table))
+            }
         }
     }
 }
