@@ -241,44 +241,18 @@ impl Eq for Expression {}
 impl PartialOrd for Expression {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self, other) {
-            // Compare NumberLiteral
             (Expression::NumberLiteral(l), Expression::NumberLiteral(r)) => l.partial_cmp(r),
-            // Compare BooleanLiteral
-            (Expression::BooleanLiteral(l), Expression::BooleanLiteral(r)) => l.partial_cmp(r),
-            // Compare StringLiteral
+            (Expression::BooleanLiteral(l), Expression::BooleanLiteral(r)) => l.partial_cmp(r), 
             (Expression::StringLiteral(l), Expression::StringLiteral(r)) => l.partial_cmp(r),
-            // Compare NilLiteral
             (Expression::NilLiteral, Expression::NilLiteral) => Some(Ordering::Equal),
-            // Compare IdentifierExpression
-            (Expression::IdentifierExpression(l), Expression::IdentifierExpression(r)) => {
-                l.partial_cmp(r)
-            }
-            // Compare TableLiteral
+            (Expression::IdentifierExpression(l), Expression::IdentifierExpression(r)) => l.partial_cmp(r),
             (Expression::TableLiteral(l), Expression::TableLiteral(r)) => {
-                if let Some(ord) = l.keys().partial_cmp(r.keys()) {
-                    Some(ord.then_with(|| match ord {
-                        Ordering::Equal => l.values().partial_cmp(r.values()).unwrap(),
-                        _ => ord,
-                    }))
-                } else {
-                    None
-                }
-            }
-            // Compare BinaryExpression
+                l.iter().partial_cmp(r.iter())
+            },
             (Expression::BinaryExpression(l, _, r), Expression::BinaryExpression(ll, _, rr)) => {
-                if let Some(ord) = l.partial_cmp(ll) {
-                    Some(ord.then_with(|| match ord {
-                        Ordering::Equal => r.partial_cmp(rr).unwrap(),
-                        _ => ord,
-                    }))
-                } else {
-                    None
-                }
-            }
-            // Compare FunctionCall
+                l.partial_cmp(ll).and_then(|ord| Some(ord.then(r.partial_cmp(rr)?)))
+            },
             (Expression::FunctionCall(l, _), Expression::FunctionCall(r, _)) => l.partial_cmp(r),
-
-            // Different types are incomparable
             _ => None,
         }
     }
