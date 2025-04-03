@@ -43,6 +43,7 @@ pub enum Expression {
     IdentifierExpression(String),
     BinaryExpression(Box<Expression>, String, Box<Expression>),
     FunctionCall(String, Vec<Expression>),
+    IndexOperator(Box<Expression>, Box<Expression>),
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -176,6 +177,18 @@ impl Expression {
                     table.insert(key.execute(_g)?, value.execute(_g)?);
                 }
                 Ok(EvalValue::Table(table))
+            }
+            Expression::IndexOperator(table, index) => {
+                let table_value = table.execute(_g)?;
+                let index_value = index.execute(_g)?;
+                
+                match table_value {
+                    EvalValue::Table(table) => {
+                        Ok(table.get(&index_value).cloned().unwrap_or(EvalValue::Nil))
+                    }
+                    EvalValue::Nil => Ok(EvalValue::Nil),
+                    _ => Err("Cannot index non-table value".to_string())
+                }
             }
         }
     }

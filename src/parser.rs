@@ -324,6 +324,13 @@ impl<'a> Parser<'a> {
                         tokens.next();
 
                         Ok(Expression::FunctionCall(identifier, arguments))
+                    } else if tokens.peek() == Some(&lex::Token::LeftSquareBracket) {
+                        tokens.next();
+                        let index = self.parse_expression(tokens)?;
+                        
+                        self.expect(tokens, lex::Token::RightSquareBracket)?;
+
+                        Ok(Expression::IndexOperator(Box::new(Expression::IdentifierExpression(identifier)), Box::new(index)))
                     } else {
                         Ok(Expression::IdentifierExpression(identifier))
                     }
@@ -439,7 +446,6 @@ impl<'a> Parser<'a> {
         &mut self,
         tokens: &mut std::iter::Peekable<std::vec::IntoIter<lex::Token>>,
     ) -> Result<Expression, String> {
-        tokens.next();
 
         let mut table_structure = BTreeMap::new();
         let mut in_table_index = 1;
@@ -454,8 +460,7 @@ impl<'a> Parser<'a> {
                 } // Skip comma
                 _ => {
                     let element = self.parse_expression(tokens)?;
-                    table_structure
-                        .insert(Expression::NumberLiteral(in_table_index as f64), element);
+                    table_structure.insert(Expression::NumberLiteral(in_table_index as f64), element);
                     in_table_index += 1;
                 }
             }
